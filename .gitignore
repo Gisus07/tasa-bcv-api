@@ -1,18 +1,30 @@
 # Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.pyd
 *.db
+
+# Entornos
 .env
+.venv/
+env/
+venv/
 
 # Logs
-logs/
+logs/*
+!logs/.gitkeep
 *.log
 
-# VSCode
+# VSCode y sistemas
 .vscode/
-
-# Sistema
 .DS_Store
 Thumbs.db
+
+# Archivos JSON de datos persistentes (opcional, si los quieres ignorar)
+# data.json
+# datos.json
+# tasas_usd.json
+# usuarios.json
+
+# Docker
+*.pid
