@@ -1,0 +1,21 @@
+version: '3.9'
+
+services:
+  bcv-bot:
+    build: .
+    container_name: bcv_bot
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - ./data.json:/app/data.json
+      - ./datos.json:/app/datos.json
+      - ./tasas_usd.json:/app/tasas_usd.json
+      - ./usuarios.json:/app/usuarios.json
+    restart: always
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('OK')"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
