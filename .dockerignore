@@ -8,3 +8,4 @@ __pycache__/
 logs/
 usuarios.json
 data.json
+firebase_key.json

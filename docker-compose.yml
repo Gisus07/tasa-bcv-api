@@ -8,10 +8,7 @@ services:
       - .env
     volumes:
       - ./logs:/app/logs
-      - ./data.json:/app/data.json
-      - ./datos.json:/app/datos.json
-      - ./tasas_usd.json:/app/tasas_usd.json
-      - ./usuarios.json:/app/usuarios.json
+      - ./firebase_key.json:/app/firebase_key.json:ro
     restart: always
 
     healthcheck:

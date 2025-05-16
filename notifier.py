@@ -8,11 +8,25 @@ from firebase_manager import obtener_usuarios,obtener_intervencion, guardar_inte
 from bcv_checker import obtener_ultima_intervencion
 from datetime import datetime, time, timedelta
 from log_manager import logger
+from firebase_manager import guardar_tasa_usd
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
 def hora_local():
     return datetime.now(ZONA_VE)
+
+def fecha_destino_tasa(fecha_anuncio: str) -> str:
+    # Entrada: "dd-mm-yyyy"
+    dia, mes, anio = map(int, fecha_anuncio.split("-"))
+    fecha = datetime(anio, mes, dia)
+    dia_semana = fecha.weekday()  # lunes = 0 ... domingo = 6
+
+    if dia_semana == 4:  # Viernes
+        destino = fecha + timedelta(days=3)  # Lunes siguiente
+    else:
+        destino = fecha + timedelta(days=1)  # Día siguiente
+
+    return destino.strftime("%d-%m-%Y")
 
 def obtener_tasa_usd_hoy():
     try:
@@ -93,6 +107,10 @@ async def verificar_bcv_periodicamente(app):
         hoy = hora_local().strftime("%d-%m-%Y")
         if nueva and nueva["fecha"] != actual["fecha"] and nueva["fecha"] == hoy:
             guardar_datos({**nueva, "notificado": True})
+            # Guardar la tasa del día correspondiente
+            fecha_real = fecha_destino_tasa(nueva["fecha"])
+            guardar_tasa_usd(fecha_real, nueva["usd"])
+            logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
             mensaje = (
                 f"📢 Nueva Intervención Cambiaria Detectada\n"
                 f"📆 Fecha: {nueva['fecha']}\n"
@@ -129,7 +147,10 @@ async def monitorear_entre_7y830(app):
             if nueva and nueva["fecha"] != datos_actuales["fecha"] and nueva["fecha"] == hoy:
                 nueva["notificado"] = True
                 guardar_datos(nueva)
-
+                # Guardar la tasa del día correspondiente
+                fecha_real = fecha_destino_tasa(nueva["fecha"])
+                guardar_tasa_usd(fecha_real, nueva["usd"])
+                logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
                 mensaje = (
                     f"📢 Nueva Intervención Cambiaria Detectada\n"
                     f"📆 Fecha: {nueva['fecha']}\n"

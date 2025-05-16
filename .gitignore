@@ -11,8 +11,7 @@ env/
 venv/
 
 # Logs
-logs/*
-!logs/.gitkeep
+logs/
 *.log
 
 # VSCode y sistemas
@@ -20,7 +19,7 @@ logs/*
 .DS_Store
 Thumbs.db
 
-# Archivos JSON de datos persistentes (ya migrados a Firestore)
+# Archivos JSON migrados a Firestore (comentados por historial)
 # data.json
 # datos.json
 # tasas_usd.json
