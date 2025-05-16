@@ -1,11 +1,11 @@
 from firebase_config import db
 
 # 🔹 USUARIOS
-def guardar_usuarios(lista_ids):
+def guardar_usuarios_firebase(lista_ids):
     doc_ref = db.collection("datos").document("usuarios")
     doc_ref.set({"ids": lista_ids})
 
-def obtener_usuarios():
+def obtener_usuarios_firebase():
     doc_ref = db.collection("datos").document("usuarios")
     doc = doc_ref.get()
     if doc.exists:
@@ -13,11 +13,11 @@ def obtener_usuarios():
     return []
 
 # 🔹 INTERVENCIÓN
-def guardar_intervencion(data):
+def guardar_intervencion_firebase(data):
     doc_ref = db.collection("datos").document("intervencion")
     doc_ref.set(data)
 
-def obtener_intervencion():
+def obtener_intervencion_firebase():
     doc_ref = db.collection("datos").document("intervencion")
     doc = doc_ref.get()
     if doc.exists:
@@ -25,11 +25,11 @@ def obtener_intervencion():
     return {}
 
 # 🔹 TASA USD
-def guardar_tasa_usd(fecha, valor):
+def guardar_tasa_usd_firebase(fecha, valor):
     doc_ref = db.collection("tasas_usd").document(fecha)
     doc_ref.set({"valor": valor})
 
-def obtener_tasa_usd(fecha):
+def obtener_tasa_usd_firebase(fecha):
     doc_ref = db.collection("tasas_usd").document(fecha)
     doc = doc_ref.get()
     if doc.exists:

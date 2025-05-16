@@ -4,11 +4,12 @@ import json
 import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
-from firebase_manager import obtener_usuarios,obtener_intervencion, guardar_intervencion, obtener_tasa_usd
+from firebase_manager import obtener_usuarios_firebase,obtener_intervencion_firebase, guardar_intervencion_firebase, obtener_tasa_usd_firebase
 from bcv_checker import obtener_ultima_intervencion
 from datetime import datetime, time, timedelta
 from log_manager import logger
-from firebase_manager import guardar_tasa_usd
+from firebase_manager import guardar_tasa_usd_firebase
+from bcv_checker import obtener_tasa_usd_bcv_checker
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
@@ -32,16 +33,23 @@ def obtener_tasa_usd_hoy():
     try:
         hoy = hora_local()
         hoy_str = hoy.strftime("%d-%m-%Y")
-        valor = obtener_tasa_usd(hoy_str)
+        
+        # Intentamos obtener la tasa desde Firebase
+        valor = obtener_tasa_usd_firebase(hoy_str)
+        
+        # Si no encontramos la tasa en Firebase, la obtenemos del BCV
+        if not valor:
+            logger.info(f"Tasa de {hoy_str} no encontrada en Firebase. Intentando obtenerla desde el BCV...")
+            valor = obtener_tasa_usd_bcv_checker()  # Llamamos a la función de bcv_checker para hacer scraping
 
         return valor or "No disponible", hoy_str, hoy_str
 
     except Exception as e:
-        logger.error(f"❌ Error al obtener tasa desde Firestore: {e}")
+        logger.error(f"❌ Error al obtener tasa desde Firestore o BCV: {e}")
         return "Error", None, None
 
 def cargar_datos():
-    datos = obtener_intervencion()
+    datos = obtener_intervencion_firebase()
     return datos if datos else {
         "fecha": "",
         "intervencion": "",
@@ -51,7 +59,7 @@ def cargar_datos():
     }
 
 def guardar_datos(datos):
-    guardar_intervencion(datos)
+    guardar_intervencion_firebase(datos)
 
 async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -87,7 +95,7 @@ async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(mensaje)
 
 async def notificar_a_todos(bot, mensaje):
-    usuarios = obtener_usuarios()
+    usuarios = obtener_usuarios_firebase()
     for uid in usuarios:
         try:
             await bot.send_message(chat_id=uid, text=mensaje)
@@ -109,7 +117,7 @@ async def verificar_bcv_periodicamente(app):
             guardar_datos({**nueva, "notificado": True})
             # Guardar la tasa del día correspondiente
             fecha_real = fecha_destino_tasa(nueva["fecha"])
-            guardar_tasa_usd(fecha_real, nueva["usd"])
+            guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
             logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
             mensaje = (
                 f"📢 Nueva Intervención Cambiaria Detectada\n"
@@ -149,7 +157,7 @@ async def monitorear_entre_7y830(app):
                 guardar_datos(nueva)
                 # Guardar la tasa del día correspondiente
                 fecha_real = fecha_destino_tasa(nueva["fecha"])
-                guardar_tasa_usd(fecha_real, nueva["usd"])
+                guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
                 logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
                 mensaje = (
                     f"📢 Nueva Intervención Cambiaria Detectada\n"

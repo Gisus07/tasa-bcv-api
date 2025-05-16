@@ -1,20 +1,22 @@
-# Python
+# Archivos de Python
 __pycache__/
 *.py[cod]
 *.pyd
 *.db
 
-# Entornos
-.env
+# Archivos de entornos virtuales
 .venv/
 env/
 venv/
 
-# Logs
+# Archivos de configuración de entorno (variables sensibles)
+.env
+
+# Archivos de logs
 logs/
 *.log
 
-# VSCode y sistemas
+# Archivos específicos de editor y sistema
 .vscode/
 .DS_Store
 Thumbs.db
@@ -25,8 +27,8 @@ Thumbs.db
 # tasas_usd.json
 # usuarios.json
 
-# Claves sensibles
+# Archivos de claves sensibles (como el archivo de clave de Firebase)
 firebase_key.json
 
-# Docker
+# Archivos generados por Docker
 *.pid

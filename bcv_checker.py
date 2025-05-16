@@ -1,83 +1,82 @@
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-import json
-import os
+from firebase_manager import guardar_tasa_usd_firebase, obtener_tasa_usd_firebase
+from log_manager import logger
+import urllib3
 
-def cargar_tasas_usd_local():
-    try:
-        with open("tasas_usd.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {}
+# Desactivar la advertencia de SSL
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def obtener_ultima_intervencion():
+    """
+    Obtiene la última intervención cambiaria desde la página del BCV y la tasa de USD.
+    """
     url = "https://www.bcv.org.ve/politica-cambiaria/intervencion-cambiaria"
-    response = requests.get(url, verify=False)
-    soup = BeautifulSoup(response.text, "html.parser")
-    fila = soup.select_one("table tbody tr")
+    try:
+        # Desactivamos la verificación SSL con verify=False
+        response = requests.get(url, verify=False)
+        soup = BeautifulSoup(response.text, "html.parser")
+        fila = soup.select_one("table tbody tr")
 
-    if fila:
-        columnas = fila.find_all("td")
-        if len(columnas) >= 3:
-            fecha_intervencion = columnas[0].get_text(strip=True)
-            hoy = datetime.now().strftime("%d-%m-%Y")
+        if fila:
+            columnas = fila.find_all("td")
+            if len(columnas) >= 3:
+                fecha_intervencion = columnas[0].get_text(strip=True)
+                hoy = datetime.now().strftime("%d-%m-%Y")
 
-            tasas_usd = cargar_tasas_usd_local()
-            usd_rate = tasas_usd.get(fecha_intervencion)
+                # Obtener tasa USD desde Firebase
+                tasa_usd = obtener_tasa_usd_firebase(fecha_intervencion)
 
-            if not usd_rate and fecha_intervencion == hoy:
-                usd_rate = obtener_tasa_usd()
-            elif not usd_rate:
-                usd_rate = "N/D"
+                if not tasa_usd and fecha_intervencion == hoy:
+                    tasa_usd = obtener_tasa_usd_bcv_checker()  # Si no hay tasa, hacemos scraping y actualizamos
 
-            return {
-                "fecha": fecha_intervencion,
-                "intervencion": columnas[1].get_text(strip=True),
-                "monto": columnas[2].get_text(strip=True),
-                "usd": usd_rate
-            }
+                # Convertir el monto a float, limpiando cualquier carácter no numérico como comas
+                monto = columnas[2].get_text(strip=True).replace(",", ".")  # Eliminar comas si existen
+                monto_float = float(monto)  # Convertir a float
+
+                return {
+                    "fecha": fecha_intervencion,
+                    "intervencion": columnas[1].get_text(strip=True),
+                    "monto": monto_float,  # Guardar monto como float
+                    "usd": tasa_usd
+                }
+    except Exception as e:
+        logger.error(f"❌ Error al obtener la intervención: {e}")
     return None
 
-def obtener_tasa_usd():
-    if not os.path.exists(TASA_FILE):
-        return "No disponible", None, None
 
+def obtener_tasa_usd_bcv_checker():
+    """
+    Obtiene la tasa USD del BCV y la guarda en Firebase si no está disponible.
+    """
+    url = "https://www.bcv.org.ve/"
     try:
-        with open(TASA_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        # Desactivamos la verificación SSL con verify=False
+        response = requests.get(url, verify=False)
+        soup = BeautifulSoup(response.text, "html.parser")
+        tasa_div = soup.select_one("#dolar strong")
 
-        hoy = datetime.now()
-        hoy_str = hoy.strftime("%d-%m-%Y")
-        dow = hoy.weekday()
+        if tasa_div:
+            tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
+            hoy = datetime.now().strftime("%d-%m-%Y")
 
-        # Regla BCV
-        if dow == 0:  # Lunes
-            tasa_fecha = (hoy + timedelta(days=1)).strftime("%d-%m-%Y")
-        elif dow == 1:  # Martes
-            tasa_fecha = (hoy + timedelta(days=1)).strftime("%d-%m-%Y")
-        elif dow == 2:  # Miércoles
-            tasa_fecha = (hoy + timedelta(days=1)).strftime("%d-%m-%Y")
-        elif dow == 3:  # Jueves
-            tasa_fecha = (hoy + timedelta(days=1)).strftime("%d-%m-%Y")
-        elif dow == 4:  # Viernes
-            tasa_fecha = (hoy + timedelta(days=3)).strftime("%d-%m-%Y")
-        elif dow == 5:  # Sábado
-            tasa_fecha = (hoy + timedelta(days=2)).strftime("%d-%m-%Y")
-        elif dow == 6:  # Domingo
-            tasa_fecha = (hoy + timedelta(days=1)).strftime("%d-%m-%Y")
-            
-        logger.info(f"🔍 Buscando tasa para fecha clave: {tasa_fecha}, hoy: {hoy_str}")
+            # Redondear la tasa a 2 decimales
+            tasa_usd = round(float(tasa_usd), 2)  # Convierte a float y redondea a 2 decimales
 
-        valor = data.get(tasa_fecha)
+            # Verificar si la tasa ya está guardada en Firebase
+            tasa_guardada = obtener_tasa_usd_firebase(hoy)
 
-        if valor:
-            return valor, hoy_str, tasa_fecha
+            if not tasa_guardada:  # Si no está guardada, la guardamos
+                guardar_tasa_usd_firebase(hoy, tasa_usd)
+                logger.info(f"✅ Tasa obtenida y guardada: {tasa_usd}")
+            else:
+                logger.info(f"✅ Tasa ya está guardada: {tasa_guardada}")
+
+            return str(tasa_usd)  # Devolver la tasa como string con 2 decimales
         else:
-            return "No disponible", hoy_str, tasa_fecha
-
+            logger.warning("❌ No se pudo obtener la tasa del BCV.")
+            return "No disponible"
     except Exception as e:
-        logger.error(f"❌ Error al leer tasas_usd.json: {e}")
-        return "Error", None, None
+        logger.error(f"❌ Error al obtener la tasa USD: {e}")
+        return "No disponible"
