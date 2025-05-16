@@ -4,52 +4,40 @@ import json
 import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
-from subs_manager import cargar_usuarios
+from firebase_manager import obtener_usuarios,obtener_intervencion, guardar_intervencion, obtener_tasa_usd
 from bcv_checker import obtener_ultima_intervencion
 from datetime import datetime, time, timedelta
 from log_manager import logger
 
-DATA_FILE = "datos.json"
-TASA_FILE = "tasas_usd.json"
 ZONA_VE = pytz.timezone("America/Caracas")
 
 def hora_local():
     return datetime.now(ZONA_VE)
 
 def obtener_tasa_usd_hoy():
-    if not os.path.exists(TASA_FILE):
-        return "No disponible", None, None
-
     try:
-        with open(TASA_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
         hoy = hora_local()
         hoy_str = hoy.strftime("%d-%m-%Y")
-        valor = data.get(hoy_str)
+        valor = obtener_tasa_usd(hoy_str)
 
         return valor or "No disponible", hoy_str, hoy_str
 
     except Exception as e:
-        logger.error(f"❌ Error al leer {TASA_FILE}: {e}")
+        logger.error(f"❌ Error al obtener tasa desde Firestore: {e}")
         return "Error", None, None
 
 def cargar_datos():
-    try:
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return {
-            "fecha": "",
-            "intervencion": "",
-            "usd": "",
-            "monto": "",
-            "notificado": False
-        }
+    datos = obtener_intervencion()
+    return datos if datos else {
+        "fecha": "",
+        "intervencion": "",
+        "usd": "",
+        "monto": "",
+        "notificado": False
+    }
 
 def guardar_datos(datos):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(datos, f)
+    guardar_intervencion(datos)
 
 async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -85,7 +73,7 @@ async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(mensaje)
 
 async def notificar_a_todos(bot, mensaje):
-    usuarios = cargar_usuarios()
+    usuarios = obtener_usuarios()
     for uid in usuarios:
         try:
             await bot.send_message(chat_id=uid, text=mensaje)

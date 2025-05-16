@@ -1,23 +1,10 @@
-import json
 from telegram import Update
 from telegram.ext import ContextTypes
-
-USUARIOS_FILE = "usuarios.json"
-
-def cargar_usuarios():
-    try:
-        with open(USUARIOS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except:
-        return []
-
-def guardar_usuarios(lista):
-    with open(USUARIOS_FILE, "w", encoding="utf-8") as f:
-        json.dump(lista, f)
+from firebase_manager import obtener_usuarios, guardar_usuarios
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    usuarios = cargar_usuarios()
+    usuarios = obtener_usuarios()
     if user_id not in usuarios:
         usuarios.append(user_id)
         guardar_usuarios(usuarios)
@@ -27,7 +14,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    usuarios = cargar_usuarios()
+    usuarios = obtener_usuarios()
     if user_id in usuarios:
         usuarios.remove(user_id)
         guardar_usuarios(usuarios)
