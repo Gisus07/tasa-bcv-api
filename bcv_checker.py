@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timedelta
 from firebase_manager import guardar_tasa_usd_firebase, obtener_tasa_usd_firebase
 from log_manager import logger
 import urllib3
@@ -49,34 +49,45 @@ def obtener_ultima_intervencion():
 def obtener_tasa_usd_bcv_checker():
     """
     Obtiene la tasa USD del BCV y la guarda en Firebase si no está disponible.
+    Para sábado y domingo, usa la tasa correspondiente al viernes anterior.
     """
     url = "https://www.bcv.org.ve/"
     try:
-        # Desactivamos la verificación SSL con verify=False
+        hoy_dt = datetime.now()
+        dia_semana = hoy_dt.weekday()  # 0 = lunes, 6 = domingo
+
+        # Si es sábado (5) o domingo (6), restamos días hasta obtener viernes (4)
+        if dia_semana == 5:  # sábado
+            fecha_ref = hoy_dt - timedelta(days=1)
+        elif dia_semana == 6:  # domingo
+            fecha_ref = hoy_dt - timedelta(days=2)
+        else:
+            fecha_ref = hoy_dt
+
+        fecha_formateada = fecha_ref.strftime("%d-%m-%Y")
+
+        # Verificar si la tasa ya está guardada en Firebase
+        tasa_guardada = obtener_tasa_usd_firebase(fecha_formateada)
+        if tasa_guardada:
+            logger.info(f"📌 Tasa recuperada desde Firebase ({fecha_formateada}): {tasa_guardada}")
+            return str(tasa_guardada)
+
+        # Si no está guardada, intentamos obtenerla desde la web
         response = requests.get(url, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
         tasa_div = soup.select_one("#dolar strong")
 
         if tasa_div:
             tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
-            hoy = datetime.now().strftime("%d-%m-%Y")
+            tasa_usd = round(float(tasa_usd), 2)
 
-            # Redondear la tasa a 2 decimales
-            tasa_usd = round(float(tasa_usd), 2)  # Convierte a float y redondea a 2 decimales
-
-            # Verificar si la tasa ya está guardada en Firebase
-            tasa_guardada = obtener_tasa_usd_firebase(hoy)
-
-            if not tasa_guardada:  # Si no está guardada, la guardamos
-                guardar_tasa_usd_firebase(hoy, tasa_usd)
-                logger.info(f"✅ Tasa obtenida y guardada: {tasa_usd}")
-            else:
-                logger.info(f"✅ Tasa ya está guardada: {tasa_guardada}")
-
-            return str(tasa_usd)  # Devolver la tasa como string con 2 decimales
+            guardar_tasa_usd_firebase(fecha_formateada, tasa_usd)
+            logger.info(f"✅ Tasa obtenida y guardada ({fecha_formateada}): {tasa_usd}")
+            return str(tasa_usd)
         else:
-            logger.warning("❌ No se pudo obtener la tasa del BCV.")
+            logger.warning("❌ No se pudo encontrar la tasa en la página del BCV.")
             return "No disponible"
+
     except Exception as e:
         logger.error(f"❌ Error al obtener la tasa USD: {e}")
         return "No disponible"
