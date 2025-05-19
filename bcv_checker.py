@@ -1,3 +1,4 @@
+import re
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -48,45 +49,62 @@ def obtener_ultima_intervencion():
 
 def obtener_tasa_usd_bcv_checker():
     """
-    Obtiene la tasa USD del BCV y la guarda en Firebase si no está disponible.
-    Para sábado y domingo, usa la tasa correspondiente al viernes anterior.
+    Obtiene la tasa USD del BCV verificando la 'fecha valor' real desde el sitio.
+    Guarda la tasa en Firebase si no ha sido registrada.
     """
     url = "https://www.bcv.org.ve/"
     try:
-        hoy_dt = datetime.now()
-        dia_semana = hoy_dt.weekday()  # 0 = lunes, 6 = domingo
-
-        # Si es sábado (5) o domingo (6), restamos días hasta obtener viernes (4)
-        if dia_semana == 5:  # sábado
-            fecha_ref = hoy_dt - timedelta(days=1)
-        elif dia_semana == 6:  # domingo
-            fecha_ref = hoy_dt - timedelta(days=2)
-        else:
-            fecha_ref = hoy_dt
-
-        fecha_formateada = fecha_ref.strftime("%d-%m-%Y")
-
-        # Verificar si la tasa ya está guardada en Firebase
-        tasa_guardada = obtener_tasa_usd_firebase(fecha_formateada)
-        if tasa_guardada:
-            logger.info(f"📌 Tasa recuperada desde Firebase ({fecha_formateada}): {tasa_guardada}")
-            return str(tasa_guardada)
-
-        # Si no está guardada, intentamos obtenerla desde la web
         response = requests.get(url, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
+
+        # 1. Extraer la tasa USD
         tasa_div = soup.select_one("#dolar strong")
-
-        if tasa_div:
-            tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
-            tasa_usd = round(float(tasa_usd), 2)
-
-            guardar_tasa_usd_firebase(fecha_formateada, tasa_usd)
-            logger.info(f"✅ Tasa obtenida y guardada ({fecha_formateada}): {tasa_usd}")
-            return str(tasa_usd)
-        else:
-            logger.warning("❌ No se pudo encontrar la tasa en la página del BCV.")
+        if not tasa_div:
+            logger.warning("❌ No se encontró el valor de la tasa.")
             return "No disponible"
+
+        tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
+        tasa_usd = round(float(tasa_usd), 2)
+
+        # 2. Extraer la fecha valor
+        span_fecha = soup.select_one(".date-display-single")
+        if not span_fecha:
+            logger.warning("❌ No se encontró la fecha valor.")
+            return "No disponible"
+
+        texto_fecha = span_fecha.text.strip()  # Ej: "Lunes, 19 Mayo 2025"
+        match = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", texto_fecha)
+
+        if not match:
+            logger.warning(f"⚠️ No se pudo parsear la fecha valor desde: {texto_fecha}")
+            return "No disponible"
+
+        dia, mes_texto, anio = match.groups()
+        meses = {
+            "Enero": "01", "Febrero": "02", "Marzo": "03",
+            "Abril": "04", "Mayo": "05", "Junio": "06",
+            "Julio": "07", "Agosto": "08", "Septiembre": "09",
+            "Octubre": "10", "Noviembre": "11", "Diciembre": "12"
+        }
+
+        mes = meses.get(mes_texto.capitalize())
+        if not mes:
+            logger.warning(f"❌ Mes no reconocido: {mes_texto}")
+            return "No disponible"
+
+        fecha_valor = f"{dia.zfill(2)}-{mes}-{anio}"
+
+        # 3. Validar que la fecha valor sea igual a la fecha actual del sistema
+        fecha_actual = datetime.now().strftime("%d-%m-%Y")
+        if fecha_valor != fecha_actual:
+            logger.warning(f"⛔ Fecha valor '{fecha_valor}' no coincide con la fecha actual '{fecha_actual}'. No se guarda la tasa.")
+            return "No disponible"
+
+
+        # 4. Guardar si es nueva
+        guardar_tasa_usd_firebase(fecha_valor, tasa_usd)
+        logger.info(f"✅ Tasa guardada para {fecha_valor}: {tasa_usd}")
+        return str(tasa_usd)
 
     except Exception as e:
         logger.error(f"❌ Error al obtener la tasa USD: {e}")
