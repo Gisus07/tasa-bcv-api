@@ -1,4 +1,9 @@
 from firebase_config import db
+import pytz
+from datetime import datetime, timedelta
+from google.cloud import firestore
+
+ZONA_VE = pytz.timezone("America/Caracas")
 
 # 🔹 USUARIOS
 def guardar_usuarios_firebase(lista_ids):
@@ -35,3 +40,24 @@ def obtener_tasa_usd_firebase(fecha):
     if doc.exists:
         return doc.to_dict().get("valor")
     return None
+
+# 🔹 ELIMINAR tasas_usd de la semana anterior
+def eliminar_tasas_anteriores():
+    hoy = datetime.now(ZONA_VE)
+    lunes_actual = hoy - timedelta(days=hoy.weekday())
+    eliminadas = 0
+
+    tasas_ref = db.collection("tasas_usd")
+    documentos = tasas_ref.stream()
+
+    for doc in documentos:
+        try:
+            fecha = datetime.strptime(doc.id, "%d-%m-%Y")
+            if fecha < lunes_actual:
+                doc.reference.delete()
+                eliminadas += 1
+        except Exception as e:
+            print(f"⚠️ Error al procesar fecha {doc.id}: {e}")
+            continue
+
+    return eliminadas

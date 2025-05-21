@@ -1,6 +1,4 @@
 import pytz
-import os
-import json
 import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -15,6 +13,17 @@ ZONA_VE = pytz.timezone("America/Caracas")
 
 def hora_local():
     return datetime.now(ZONA_VE)
+
+def generar_firma():
+    ahora = datetime.now(ZONA_VE)
+    fecha_firma = ahora.strftime("%Y%m%d\\-%H%M")  # <- escapa el guion
+    return f"\n\n🔏 Firma digital: \\`BCV\\-BOT/{fecha_firma}\\`"
+
+def escape_markdown_v2(texto: str) -> str:
+    caracteres_escapables = r"_*[]()~`>#+-=|{}.!\\"
+    for c in caracteres_escapables:
+        texto = texto.replace(c, f"\\{c}")
+    return texto
 
 def fecha_destino_tasa(fecha_anuncio: str) -> str:
     # Entrada: "dd-mm-yyyy"
@@ -78,6 +87,7 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         msg = "⚠️ No se pudo obtener la información del BCV."
+    msg += generar_firma()
     await update.message.reply_text(msg)
 
 async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -126,6 +136,7 @@ async def verificar_bcv_periodicamente(app):
                 f"💵 Tipo de Cambio Bs./USD: {nueva['usd']}\n"
                 f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
             )
+            mensaje += generar_firma()
             await notificar_a_todos(app.bot, mensaje)
             logger.info("✅ Se notificó a todos.")
         else:
@@ -157,7 +168,13 @@ async def monitorear_entre_7y830(app):
                 guardar_datos(nueva)
                 # Guardar la tasa del día correspondiente
                 fecha_real = fecha_destino_tasa(nueva["fecha"])
-                guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
+                # Verifica si ya está guardada antes de guardar
+                if not obtener_tasa_usd_firebase(fecha_real):
+                    guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
+                    logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
+                else:
+                    logger.info(f"ℹ️ Tasa ya estaba guardada para {fecha_real}, no se sobrescribió.")
+
                 logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
                 mensaje = (
                     f"📢 Nueva Intervención Cambiaria Detectada\n"
@@ -166,6 +183,7 @@ async def monitorear_entre_7y830(app):
                     f"💵 Tipo de Cambio Bs./USD: {nueva['usd']}\n"
                     f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
                 )
+                mensaje += generar_firma()
                 await notificar_a_todos(app.bot, mensaje)
                 logger.info("✅ Intervención detectada y notificada.")
             else:
@@ -189,3 +207,15 @@ async def monitorear_entre_7y830(app):
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("✅ Entró al comando /ping")
     await update.message.reply_text("🏓 Pong")
+
+async def enviar_recordatorio_donacion(bot):
+    try:
+        mensaje = (
+            "¿Te ha sido útil este bot? Puedes apoyarlo con una donación ❤️\n\n"
+            "👉 Usa el comando /donar para ver las opciones disponibles.\n"
+            "¡Gracias por tu apoyo!"
+        )
+        await notificar_a_todos(bot, mensaje)
+        logger.info("🎁 Recordatorio de donación enviado a todos.")
+    except Exception as e:
+        logger.error(f"❌ Error al enviar recordatorio de donación: {e}")

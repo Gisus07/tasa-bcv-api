@@ -50,9 +50,10 @@ def obtener_ultima_intervencion():
 def obtener_tasa_usd_bcv_checker():
     """
     Obtiene la tasa USD del BCV verificando la 'fecha valor' real desde el sitio.
-    Guarda la tasa en Firebase si no ha sido registrada.
+    Solo la guarda si aún no está registrada en Firebase.
     """
     url = "https://www.bcv.org.ve/"
+
     try:
         response = requests.get(url, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
@@ -72,9 +73,8 @@ def obtener_tasa_usd_bcv_checker():
             logger.warning("❌ No se encontró la fecha valor.")
             return "No disponible"
 
-        texto_fecha = span_fecha.text.strip()  # Ej: "Lunes, 19 Mayo 2025"
+        texto_fecha = span_fecha.text.strip()  # Ej: "Lunes, 21 Mayo 2025"
         match = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", texto_fecha)
-
         if not match:
             logger.warning(f"⚠️ No se pudo parsear la fecha valor desde: {texto_fecha}")
             return "No disponible"
@@ -94,14 +94,18 @@ def obtener_tasa_usd_bcv_checker():
 
         fecha_valor = f"{dia.zfill(2)}-{mes}-{anio}"
 
-        # 3. Validar que la fecha valor sea igual a la fecha actual del sistema
+        # 3. Validar si ya está guardada
+        ya_guardada = obtener_tasa_usd_firebase(fecha_valor)
+        if ya_guardada is not None:
+            logger.info(f"ℹ️ La tasa del {fecha_valor} ya está guardada: {ya_guardada}")
+            return str(ya_guardada)
+
+        # 4. Guardar si es nueva y coincide con fecha actual
         fecha_actual = datetime.now().strftime("%d-%m-%Y")
         if fecha_valor != fecha_actual:
             logger.warning(f"⛔ Fecha valor '{fecha_valor}' no coincide con la fecha actual '{fecha_actual}'. No se guarda la tasa.")
             return "No disponible"
 
-
-        # 4. Guardar si es nueva
         guardar_tasa_usd_firebase(fecha_valor, tasa_usd)
         logger.info(f"✅ Tasa guardada para {fecha_valor}: {tasa_usd}")
         return str(tasa_usd)
