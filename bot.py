@@ -1,6 +1,7 @@
 from telegram import BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler
 from telegram.ext import CallbackQueryHandler, MessageHandler, filters
+from telegram import BotCommandScopeDefault, BotCommandScopeChat
 from donaciones import donar, manejar_opciones, recibir_monto
 from subs_manager import start, stop
 from notifier import ultimo, tasa_actual, verificar_bcv_periodicamente, monitorear_entre_7y830
@@ -19,7 +20,7 @@ ADMIN_ID = int(os.getenv("ADMIN_ID"))
 tareas_background = []
 
 async def setup_bot(app, loop):
-    comandos = [
+    comandos_publicos = [
         BotCommand("start", "Suscribirse a alertas del BCV"),
         BotCommand("stop", "Cancelar suscripción"),
         BotCommand("ultimo", "Ver última intervención cambiaria"),
@@ -27,12 +28,17 @@ async def setup_bot(app, loop):
         BotCommand("donar", "Mostrar métodos de donación")
     ]
 
-    if int(ADMIN_ID) == int(app.bot.id):  # solo para asegurar visibilidad (Telegram limita visibilidad en menú para comandos admin)
-        comandos.append(BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas"))
+    comandos_admin = comandos_publicos + [
+        BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas")
+    ]
 
-    await app.bot.set_my_commands(comandos)
+    # Menú visible para todos
+    await app.bot.set_my_commands(comandos_publicos, scope=BotCommandScopeDefault())
+
+    # Menú visible solo para el admin
+    await app.bot.set_my_commands(comandos_admin, scope=BotCommandScopeChat(chat_id=ADMIN_ID))
+
     iniciar_scheduler(app, loop)
-
     tareas_background.append(asyncio.create_task(verificar_bcv_periodicamente(app)))
     tareas_background.append(asyncio.create_task(monitorear_entre_7y830(app)))
     logger.info("✅ Bot iniciado y en espera")

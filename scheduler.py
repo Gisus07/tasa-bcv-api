@@ -6,16 +6,15 @@ from log_manager import logger
 from bcv_checker import obtener_tasa_usd_bcv_checker
 from firebase_manager import eliminar_tasas_anteriores
 
-
 def iniciar_scheduler(app, loop):
     scheduler = AsyncIOScheduler(timezone="America/Caracas")
 
     async def enviar_recordatorio():
         try:
             ahora = datetime.now().strftime("%d/%m/%Y %H:%M")
-            mensaje = f"\U0001F4E2 Recordatorio automático:\n\U0001F559 {ahora}\nNo se ha detectado una nueva intervención aún."
+            mensaje = f"📢 Recordatorio automático:\n🕘 {ahora}\nNo se ha detectado una nueva intervención aún."
             await notificar_a_todos(app.bot, mensaje)
-            logger.info("\U0001F559 Recordatorio diario enviado con éxito")
+            logger.info("🕘 Recordatorio diario enviado con éxito")
         except Exception as e:
             logger.error(f"❌ Error al enviar recordatorio diario: {e}")
 

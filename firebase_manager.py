@@ -44,7 +44,7 @@ def obtener_tasa_usd_firebase(fecha):
 # 🔹 ELIMINAR tasas_usd de la semana anterior
 def eliminar_tasas_anteriores():
     hoy = datetime.now(ZONA_VE)
-    lunes_actual = hoy - timedelta(days=hoy.weekday())
+    lunes_actual = hoy - timedelta(days=hoy.weekday())  # lunes de esta semana (aware)
     eliminadas = 0
 
     tasas_ref = db.collection("tasas_usd")
@@ -52,8 +52,9 @@ def eliminar_tasas_anteriores():
 
     for doc in documentos:
         try:
-            fecha = datetime.strptime(doc.id, "%d-%m-%Y")
-            if fecha < lunes_actual:
+            fecha_naive = datetime.strptime(doc.id, "%d-%m-%Y")
+            fecha = ZONA_VE.localize(fecha_naive)  # convertir a aware
+            if fecha.date() < lunes_actual.date():
                 doc.reference.delete()
                 eliminadas += 1
         except Exception as e:
