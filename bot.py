@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 from limpiar_tasas import limpiar_tasas
+from notifier import notificar_a_todos
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -45,14 +46,25 @@ async def setup_bot(app, loop):
 
 async def cerrar_bot(app):
     logger.info("⏹️ Cerrando tareas...")
+
+    # Notificar a los usuarios antes de apagar el bot
+    try:
+        mensaje = "⚠️ El bot ha sido detenido temporalmente por mantenimiento. Pronto volverá a estar disponible."
+        await notificar_a_todos(app.bot, mensaje)
+        logger.info("📴 Notificación de apagado enviada correctamente")
+    except Exception as e:
+        logger.error(f"❌ Error al enviar notificación de apagado: {e}")
+
+    # Cancelar tareas en segundo plano
     for tarea in tareas_background:
         tarea.cancel()
     await asyncio.gather(*tareas_background, return_exceptions=True)
+
     logger.info("✅ Tareas cerradas correctamente.")
 
 def main():
     loop = asyncio.get_event_loop()
-    app = ApplicationBuilder().token(TOKEN).post_init(lambda app: setup_bot(app, loop)).post_shutdown(cerrar_bot).build()
+    app = ApplicationBuilder().token(TOKEN).post_init(lambda app: setup_bot(app, loop)).post_stop(cerrar_bot).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("stop", stop))
