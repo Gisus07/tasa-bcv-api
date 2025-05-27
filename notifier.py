@@ -77,19 +77,9 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Error al obtener datos del BCV: {e}")
         datos = None
-    
-    usd = datos["usd"]
-    if isinstance(usd, dict):
-        tasa = usd.get("tasa", "?")
-        fecha_valor = usd.get("fecha_valor", "?")
-        usd_texto = f"{tasa} (📅 {fecha_valor})"
-    else:
-        usd_texto = usd
-
 
     if datos:
         guardar_datos({**datos, "notificado": False})
-
         usd = datos["usd"]
         if isinstance(usd, dict):
             tasa = usd.get("tasa", "?")
@@ -98,12 +88,16 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             usd_texto = usd
 
-    msg = (
-        f"📆 Fecha: {datos['fecha']}\n"
-        f"🔢 Nº Intervención: {datos['intervencion']}\n"
-        f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
-        f"💰 Tipo de Cambio Bs./EUR: {datos['monto']}"
-    )
+        msg = (
+            f"📆 Fecha: {datos['fecha']}\n"
+            f"🔢 Nº Intervención: {datos['intervencion']}\n"
+            f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
+            f"💰 Tipo de Cambio Bs./EUR: {datos['monto']}"
+        )
+    else:
+        msg = "⚠️ No se pudo obtener la información del BCV."
+
+    msg += generar_firma()
     await update.message.reply_text(msg)
 
 async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
