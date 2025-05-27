@@ -9,44 +9,6 @@ import urllib3
 # Desactivar la advertencia de SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def obtener_ultima_intervencion():
-    """
-    Obtiene la última intervención cambiaria desde la página del BCV y la tasa de USD.
-    """
-    url = "https://www.bcv.org.ve/politica-cambiaria/intervencion-cambiaria"
-    try:
-        # Desactivamos la verificación SSL con verify=False
-        response = requests.get(url, verify=False)
-        soup = BeautifulSoup(response.text, "html.parser")
-        fila = soup.select_one("table tbody tr")
-
-        if fila:
-            columnas = fila.find_all("td")
-            if len(columnas) >= 3:
-                fecha_intervencion = columnas[0].get_text(strip=True)
-                hoy = datetime.now().strftime("%d-%m-%Y")
-
-                # Obtener tasa USD desde Firebase
-                tasa_usd = obtener_tasa_usd_firebase(fecha_intervencion)
-
-                if not tasa_usd and fecha_intervencion == hoy:
-                    tasa_usd = obtener_tasa_usd_bcv_checker()  # Si no hay tasa, hacemos scraping y actualizamos
-
-                # Convertir el monto a float, limpiando cualquier carácter no numérico como comas
-                monto = columnas[2].get_text(strip=True).replace(",", ".")  # Eliminar comas si existen
-                monto_float = float(monto)  # Convertir a float
-
-                return {
-                    "fecha": fecha_intervencion,
-                    "intervencion": columnas[1].get_text(strip=True),
-                    "monto": monto_float,  # Guardar monto como float
-                    "usd": tasa_usd
-                }
-    except Exception as e:
-        logger.error(f"❌ Error al obtener la intervención: {e}")
-    return None
-
-
 def obtener_tasa_usd_bcv_checker():
     url = "https://www.bcv.org.ve/"
     try:
@@ -79,3 +41,49 @@ def obtener_tasa_usd_bcv_checker():
     except Exception as e:
         logger.error(f"❌ Error al obtener la tasa USD: {e}")
         return None
+
+def obtener_ultima_intervencion():
+    """
+    Obtiene la última intervención cambiaria desde la página del BCV y la tasa de USD.
+    """
+    url = "https://www.bcv.org.ve/politica-cambiaria/intervencion-cambiaria"
+    try:
+        response = requests.get(url, verify=False)
+        soup = BeautifulSoup(response.text, "html.parser")
+        fila = soup.select_one("table tbody tr")
+
+        if fila:
+            columnas = fila.find_all("td")
+            if len(columnas) >= 3:
+                fecha_intervencion = columnas[0].get_text(strip=True)
+                hoy = datetime.now().strftime("%d-%m-%Y")
+
+                # Obtener tasa USD desde Firebase
+                tasa_usd = obtener_tasa_usd_firebase(fecha_intervencion)
+
+                # Si no hay, hacer scraping
+                if not tasa_usd and fecha_intervencion == hoy:
+                    resultado_scraping = obtener_tasa_usd_bcv_checker()
+                    if isinstance(resultado_scraping, dict):
+                        # Guardar en Firebase con formato deseado
+                        doc_data = {
+                            "fecha_valor": resultado_scraping["fecha_valor"],
+                            "valor": resultado_scraping["tasa"]
+                        }
+                        guardar_tasa_usd_firebase(resultado_scraping["fecha_valor"], doc_data)
+                        tasa_usd = doc_data  # para retornarla en el objeto final
+
+                monto = columnas[2].get_text(strip=True).replace(",", ".")
+                monto_float = float(monto)
+
+                return {
+                    "fecha": fecha_intervencion,
+                    "intervencion": columnas[1].get_text(strip=True),
+                    "monto": monto_float,
+                    "usd": tasa_usd
+                }
+
+    except Exception as e:
+        logger.error(f"❌ Error al obtener la intervención: {e}")
+
+    return None

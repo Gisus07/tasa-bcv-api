@@ -81,8 +81,9 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if datos:
         guardar_datos({**datos, "notificado": False})
         usd = datos["usd"]
+        print(f"USD obtenido: {usd}")
         if isinstance(usd, dict):
-            tasa = usd.get("tasa", "?")
+            tasa = usd.get("valor", "?")
             fecha_valor = usd.get("fecha_valor", "?")
             usd_texto = f"{tasa} (📅 {fecha_valor})"
         else:

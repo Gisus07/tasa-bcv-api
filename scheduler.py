@@ -47,8 +47,12 @@ def iniciar_scheduler(app, loop):
 
             try:
                 valor_numerico = float(tasa_str)
-                guardar_tasa_usd_firebase(hoy, valor_numerico)
-                logger.info(f"✅ Tasa del día {hoy} registrada: {valor_numerico}")
+                doc_data = {
+                    "fecha_valor": fecha_valor,
+                    "valor": valor_numerico
+                }
+                guardar_tasa_usd_firebase(hoy, doc_data)
+                logger.info(f"✅ Tasa del día {hoy} registrada: {doc_data}")
             except ValueError:
                 logger.error(f"❌ La tasa obtenida no es un número válido: '{tasa_str}'")
 
