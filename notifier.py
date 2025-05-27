@@ -77,18 +77,33 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Error al obtener datos del BCV: {e}")
         datos = None
+    
+    usd = datos["usd"]
+    if isinstance(usd, dict):
+        tasa = usd.get("tasa", "?")
+        fecha_valor = usd.get("fecha_valor", "?")
+        usd_texto = f"{tasa} (📅 {fecha_valor})"
+    else:
+        usd_texto = usd
+
 
     if datos:
         guardar_datos({**datos, "notificado": False})
-        msg = (
-            f"📆 Fecha: {datos['fecha']}\n"
-            f"🔢 Nº Intervención: {datos['intervencion']}\n"
-            f"💵 Tipo de Cambio Bs./USD: {datos['usd']}\n"
-            f"💰 Tipo de Cambio Bs./EUR: {datos['monto']}"
-        )
-    else:
-        msg = "⚠️ No se pudo obtener la información del BCV."
-    msg += generar_firma()
+
+        usd = datos["usd"]
+        if isinstance(usd, dict):
+            tasa = usd.get("tasa", "?")
+            fecha_valor = usd.get("fecha_valor", "?")
+            usd_texto = f"{tasa} (📅 {fecha_valor})"
+        else:
+            usd_texto = usd
+
+    msg = (
+        f"📆 Fecha: {datos['fecha']}\n"
+        f"🔢 Nº Intervención: {datos['intervencion']}\n"
+        f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
+        f"💰 Tipo de Cambio Bs./EUR: {datos['monto']}"
+    )
     await update.message.reply_text(msg)
 
 async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -97,11 +112,20 @@ async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if valor in ["No disponible", "Error"]:
         mensaje = f"⚠️ No se pudo obtener la tasa del día {fecha_mostrada or 'actual'}"
     else:
-        mensaje = (
-            f"💵 Tasa USD según BCV\n"
-            f"📅 {fecha_mostrada}\n"
-            f"💰 Bs./USD: {valor}"
-        )
+        if isinstance(valor, dict):
+            tasa = valor.get("valor", "?")
+            fecha_valor = valor.get("fecha_valor", "?")
+            mensaje = (
+                f"💵 Tasa USD según BCV\n"
+                f"📅 {fecha_mostrada}\n"
+                f"💰 Bs./USD: {tasa}"
+            )
+        else:
+            mensaje = (
+                f"💵 Tasa USD según BCV\n"
+                f"📅 {fecha_mostrada}\n"
+                f"💰 Bs./USD: {valor}"
+            )
 
     await update.message.reply_text(mensaje)
 
@@ -129,13 +153,22 @@ async def verificar_bcv_periodicamente(app):
             fecha_real = fecha_destino_tasa(nueva["fecha"])
             guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
             logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
+            usd = nueva["usd"]
+            if isinstance(usd, dict):
+                tasa = usd.get("tasa", "?")
+                fecha_valor = usd.get("fecha_valor", "?")
+                usd_texto = f"{tasa} (📅 {fecha_valor})"
+            else:
+                usd_texto = usd
+
             mensaje = (
                 f"📢 Nueva Intervención Cambiaria Detectada\n"
                 f"📆 Fecha: {nueva['fecha']}\n"
                 f"🔢 Nº: {nueva['intervencion']}\n"
-                f"💵 Tipo de Cambio Bs./USD: {nueva['usd']}\n"
+                f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
                 f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
             )
+
             mensaje += generar_firma()
             await notificar_a_todos(app.bot, mensaje)
             logger.info("✅ Se notificó a todos.")
@@ -174,13 +207,22 @@ async def monitorear_entre_7y830(app):
                     logger.info(f"ℹ️ Tasa ya estaba guardada para {fecha_real}, no se sobrescribió.")
 
                 logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
+                usd = nueva["usd"]
+                if isinstance(usd, dict):
+                    tasa = usd.get("tasa", "?")
+                    fecha_valor = usd.get("fecha_valor", "?")
+                    usd_texto = f"{tasa} (📅 {fecha_valor})"
+                else:
+                    usd_texto = usd
+                
                 mensaje = (
                     f"📢 Nueva Intervención Cambiaria Detectada\n"
                     f"📆 Fecha: {nueva['fecha']}\n"
-                    f"🔢 Nº Intervención: {nueva['intervencion']}\n"
-                    f"💵 Tipo de Cambio Bs./USD: {nueva['usd']}\n"
+                    f"🔢 Nº: {nueva['intervencion']}\n"
+                    f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
                     f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
                 )
+                
                 mensaje += generar_firma()
                 await notificar_a_todos(app.bot, mensaje)
                 logger.info("✅ Intervención detectada y notificada.")

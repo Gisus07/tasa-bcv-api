@@ -60,7 +60,7 @@ def obtener_tasa_usd_bcv_checker():
             return None
 
         tasa_str = usd_strong.text.strip().replace(",", ".")
-        tasa_float = round(float(tasa_str), 6)
+        tasa_float = round(float(tasa_str), 2)
 
         # Extraer fecha valor desde atributo content
         fecha_span = soup.select_one(".date-display-single")
@@ -68,12 +68,12 @@ def obtener_tasa_usd_bcv_checker():
             logger.warning("❌ No se encontró la fecha valor.")
             return None
 
-        fecha_iso = fecha_span["content"].split("T")[0]  # "2025-05-27"
+        fecha_iso = fecha_span["content"].split("T")[0]
         fecha_valor = datetime.strptime(fecha_iso, "%Y-%m-%d").strftime("%d-%m-%Y")
 
         return {
             "fecha_valor": fecha_valor,
-            "tasa": str(tasa_float)
+            "tasa": tasa_float
         }
 
     except Exception as e:

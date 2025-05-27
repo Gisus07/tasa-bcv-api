@@ -14,7 +14,8 @@ from limpiar_tasas import limpiar_tasas
 from notifier import notificar_a_todos
 
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
+# TOKEN = os.getenv("BOT_TOKEN")
+TOKEN = os.getenv("TEST_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 # Guardar referencias a las tareas para cancelarlas al apagar
