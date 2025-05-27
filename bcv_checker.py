@@ -48,68 +48,34 @@ def obtener_ultima_intervencion():
 
 
 def obtener_tasa_usd_bcv_checker():
-    """
-    Obtiene la tasa USD del BCV verificando la 'fecha valor' real desde el sitio.
-    Solo la guarda si aún no está registrada en Firebase.
-    """
     url = "https://www.bcv.org.ve/"
-
     try:
         response = requests.get(url, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # 1. Extraer la tasa USD
-        tasa_div = soup.select_one("#dolar strong")
-        if not tasa_div:
-            logger.warning("❌ No se encontró el valor de la tasa.")
-            return "No disponible"
+        # Extraer tasa USD
+        usd_strong = soup.select_one("#dolar strong")
+        if not usd_strong:
+            logger.warning("❌ No se encontró el valor de la tasa USD.")
+            return None
 
-        tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
-        tasa_usd = round(float(tasa_usd), 2)
+        tasa_str = usd_strong.text.strip().replace(",", ".")
+        tasa_float = round(float(tasa_str), 6)
 
-        # 2. Extraer la fecha valor
-        span_fecha = soup.select_one(".date-display-single")
-        if not span_fecha:
+        # Extraer fecha valor desde atributo content
+        fecha_span = soup.select_one(".date-display-single")
+        if not fecha_span or "content" not in fecha_span.attrs:
             logger.warning("❌ No se encontró la fecha valor.")
-            return "No disponible"
+            return None
 
-        texto_fecha = span_fecha.text.strip()  # Ej: "Lunes, 21 Mayo 2025"
-        match = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", texto_fecha)
-        if not match:
-            logger.warning(f"⚠️ No se pudo parsear la fecha valor desde: {texto_fecha}")
-            return "No disponible"
+        fecha_iso = fecha_span["content"].split("T")[0]  # "2025-05-27"
+        fecha_valor = datetime.strptime(fecha_iso, "%Y-%m-%d").strftime("%d-%m-%Y")
 
-        dia, mes_texto, anio = match.groups()
-        meses = {
-            "Enero": "01", "Febrero": "02", "Marzo": "03",
-            "Abril": "04", "Mayo": "05", "Junio": "06",
-            "Julio": "07", "Agosto": "08", "Septiembre": "09",
-            "Octubre": "10", "Noviembre": "11", "Diciembre": "12"
+        return {
+            "fecha_valor": fecha_valor,
+            "tasa": str(tasa_float)
         }
-
-        mes = meses.get(mes_texto.capitalize())
-        if not mes:
-            logger.warning(f"❌ Mes no reconocido: {mes_texto}")
-            return "No disponible"
-
-        fecha_valor = f"{dia.zfill(2)}-{mes}-{anio}"
-
-        # 3. Validar si ya está guardada
-        ya_guardada = obtener_tasa_usd_firebase(fecha_valor)
-        if ya_guardada is not None:
-            logger.info(f"ℹ️ La tasa del {fecha_valor} ya está guardada: {ya_guardada}")
-            return str(ya_guardada)
-
-        # 4. Guardar si es nueva y coincide con fecha actual
-        fecha_actual = datetime.now().strftime("%d-%m-%Y")
-        if fecha_valor != fecha_actual:
-            logger.warning(f"⛔ Fecha valor '{fecha_valor}' no coincide con la fecha actual '{fecha_actual}'. No se guarda la tasa.")
-            return "No disponible"
-
-        guardar_tasa_usd_firebase(fecha_valor, tasa_usd)
-        logger.info(f"✅ Tasa guardada para {fecha_valor}: {tasa_usd}")
-        return str(tasa_usd)
 
     except Exception as e:
         logger.error(f"❌ Error al obtener la tasa USD: {e}")
-        return "No disponible"
+        return None

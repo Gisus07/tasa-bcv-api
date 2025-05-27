@@ -3,11 +3,10 @@ import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
 from firebase_manager import obtener_usuarios_firebase,obtener_intervencion_firebase, guardar_intervencion_firebase, obtener_tasa_usd_firebase
-from bcv_checker import obtener_ultima_intervencion
+from bcv_checker import obtener_ultima_intervencion, obtener_tasa_usd_bcv_checker
 from datetime import datetime, time, timedelta
 from log_manager import logger
 from firebase_manager import guardar_tasa_usd_firebase
-from bcv_checker import obtener_tasa_usd_bcv_checker
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
@@ -16,7 +15,7 @@ def hora_local():
 
 def generar_firma():
     ahora = datetime.now(ZONA_VE)
-    fecha_firma = ahora.strftime("%Y%m%d\\-%H%M")  # <- escapa el guion
+    fecha_firma = ahora.strftime("%Y%m%d\-%H%M")  # <- escapa el guion
     return f"\n\n🔏 Firma digital: \\`BCV\\-BOT/{fecha_firma}\\`"
 
 def escape_markdown_v2(texto: str) -> str:
@@ -42,14 +41,16 @@ def obtener_tasa_usd_hoy():
     try:
         hoy = hora_local()
         hoy_str = hoy.strftime("%d-%m-%Y")
-        
+
         # Intentamos obtener la tasa desde Firebase
         valor = obtener_tasa_usd_firebase(hoy_str)
-        
+
         # Si no encontramos la tasa en Firebase, la obtenemos del BCV
         if not valor:
             logger.info(f"Tasa de {hoy_str} no encontrada en Firebase. Intentando obtenerla desde el BCV...")
-            valor = obtener_tasa_usd_bcv_checker()  # Llamamos a la función de bcv_checker para hacer scraping
+            resultado = obtener_tasa_usd_bcv_checker()
+            if isinstance(resultado, dict) and resultado.get("fecha_valor") == hoy_str:
+                valor = resultado.get("tasa")
 
         return valor or "No disponible", hoy_str, hoy_str
 
@@ -125,7 +126,6 @@ async def verificar_bcv_periodicamente(app):
         hoy = hora_local().strftime("%d-%m-%Y")
         if nueva and nueva["fecha"] != actual["fecha"] and nueva["fecha"] == hoy:
             guardar_datos({**nueva, "notificado": True})
-            # Guardar la tasa del día correspondiente
             fecha_real = fecha_destino_tasa(nueva["fecha"])
             guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
             logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
@@ -141,7 +141,7 @@ async def verificar_bcv_periodicamente(app):
             logger.info("✅ Se notificó a todos.")
         else:
             logger.info("📭 Sin cambios.")
-        await asyncio.sleep(1800)  # 30 minutos
+        await asyncio.sleep(1800)
 
 async def monitorear_entre_7y830(app):
     while True:
@@ -166,9 +166,7 @@ async def monitorear_entre_7y830(app):
             if nueva and nueva["fecha"] != datos_actuales["fecha"] and nueva["fecha"] == hoy:
                 nueva["notificado"] = True
                 guardar_datos(nueva)
-                # Guardar la tasa del día correspondiente
                 fecha_real = fecha_destino_tasa(nueva["fecha"])
-                # Verifica si ya está guardada antes de guardar
                 if not obtener_tasa_usd_firebase(fecha_real):
                     guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
                     logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")

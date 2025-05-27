@@ -1,11 +1,12 @@
 import asyncio
+import re
+import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime
 from notifier import notificar_a_todos, enviar_recordatorio_donacion
 from log_manager import logger
 from bcv_checker import obtener_tasa_usd_bcv_checker
 from firebase_manager import eliminar_tasas_anteriores, obtener_tasa_usd_firebase, guardar_tasa_usd_firebase
-import pytz
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
@@ -31,17 +32,25 @@ def iniciar_scheduler(app, loop):
                 return
 
             logger.info(f"⏳ Tasa del día {hoy} no encontrada. Obteniendo desde BCV...")
-            nueva_tasa = obtener_tasa_usd_bcv_checker()
+            resultado = obtener_tasa_usd_bcv_checker()
 
-            if nueva_tasa == "Error":
+            if not resultado or not isinstance(resultado, dict):
                 logger.warning("⚠️ No se pudo obtener la tasa desde el checker.")
-            else:
-                try:
-                    valor_numerico = float(nueva_tasa.replace(",", "."))
-                    guardar_tasa_usd_firebase(hoy, valor_numerico)
-                    logger.info(f"✅ Tasa del día {hoy} registrada: {valor_numerico}")
-                except ValueError:
-                    logger.error(f"❌ La tasa obtenida no es un número válido: '{nueva_tasa}'")
+                return
+
+            fecha_valor = resultado.get("fecha_valor")
+            tasa_str = resultado.get("tasa")
+
+            if fecha_valor != hoy:
+                logger.warning(f"⛔ La fecha valor '{fecha_valor}' no coincide con hoy '{hoy}'. No se guarda la tasa.")
+                return
+
+            try:
+                valor_numerico = float(tasa_str)
+                guardar_tasa_usd_firebase(hoy, valor_numerico)
+                logger.info(f"✅ Tasa del día {hoy} registrada: {valor_numerico}")
+            except ValueError:
+                logger.error(f"❌ La tasa obtenida no es un número válido: '{tasa_str}'")
 
         except Exception as e:
             logger.error(f"❌ Error en obtener_tasa_diaria: {e}")
@@ -60,30 +69,28 @@ def iniciar_scheduler(app, loop):
         except Exception as e:
             logger.error(f"❌ Error al enviar recordatorio de donación: {e}")
 
+    def programar(corutina):
+        return lambda: asyncio.run_coroutine_threadsafe(corutina(), loop)
+
     # Programar tareas
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(enviar_recordatorio(), loop),
-                      trigger="cron", hour=8, minute=30,
+    scheduler.add_job(programar(enviar_recordatorio), trigger="cron", hour=8, minute=30,
                       misfire_grace_time=60, coalesce=True)
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop),
-                      trigger="cron", hour=0, minute=0,
+    scheduler.add_job(programar(obtener_tasa_diaria), trigger="cron", hour=0, minute=0,
                       misfire_grace_time=300, coalesce=True)
 
-    # Ejecución adicional de respaldo a las 10:00 AM
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop),
-                      trigger="cron", hour=10, minute=0,
+    scheduler.add_job(programar(obtener_tasa_diaria), trigger="cron", hour=10, minute=0,
                       misfire_grace_time=600, coalesce=True)
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(recordatorio_donacion(), loop),
-                      trigger="cron", day=1, hour=0, minute=0,
+    scheduler.add_job(programar(recordatorio_donacion), trigger="cron", day=1, hour=0, minute=0,
                       misfire_grace_time=120, coalesce=True)
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(limpieza_semanal(), loop),
-                      trigger="cron", day_of_week="mon", hour=0, minute=30,
+    scheduler.add_job(programar(limpieza_semanal), trigger="cron", day_of_week="mon", hour=0, minute=30,
                       misfire_grace_time=120, coalesce=True)
 
     scheduler.start()
     logger.info("🗓️ Scheduler diario activado")
 
     # Verificar y guardar tasa del día al iniciar el bot
-    asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop)
+    future = asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop)
+    future.add_done_callback(lambda f: logger.error(f"❌ Error inicial: {f.exception()}") if f.exception() else None)

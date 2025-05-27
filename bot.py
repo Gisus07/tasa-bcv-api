@@ -33,11 +33,18 @@ async def setup_bot(app, loop):
         BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas")
     ]
 
-    # Menú visible para todos
     await app.bot.set_my_commands(comandos_publicos, scope=BotCommandScopeDefault())
-
-    # Menú visible solo para el admin
     await app.bot.set_my_commands(comandos_admin, scope=BotCommandScopeChat(chat_id=ADMIN_ID))
+
+    # ✅ Enviar notificación de encendido
+    try:
+        mensaje_inicio = (
+            "✅ El bot vuelve a estar operativo.\n"
+        )
+        await notificar_a_todos(app.bot, mensaje_inicio)
+        logger.info("📢 Notificación de encendido enviada correctamente")
+    except Exception as e:
+        logger.error(f"❌ Error al enviar notificación de encendido: {e}")
 
     iniciar_scheduler(app, loop)
     tareas_background.append(asyncio.create_task(verificar_bcv_periodicamente(app)))
