@@ -9,3 +9,4 @@ logs/
 usuarios.json
 data.json
 firebase_key.json
+firebase_key_prod.json

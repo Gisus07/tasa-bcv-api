@@ -29,6 +29,7 @@ Thumbs.db
 
 # Archivos de claves sensibles (como el archivo de clave de Firebase)
 firebase_key.json
+firebase_key_prod.json
 
 # Archivos generados por Docker
 *.pid
