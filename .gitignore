@@ -21,14 +21,12 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Archivos JSON migrados a Firestore (comentados por historial)
-# data.json
-# datos.json
-# tasas_usd.json
-# usuarios.json
-
 # Archivos de claves sensibles (como el archivo de clave de Firebase)
 firebase_key.json
+firebase_key_prod.json
 
 # Archivos generados por Docker
 *.pid
+
+# Docker
+docker-compose.yml

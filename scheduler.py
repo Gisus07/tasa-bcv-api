@@ -1,89 +1,176 @@
 import asyncio
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from datetime import datetime
+import pytz
+from datetime import datetime, timedelta
 from notifier import notificar_a_todos, enviar_recordatorio_donacion
 from log_manager import logger
 from bcv_checker import obtener_tasa_usd_bcv_checker
 from firebase_manager import eliminar_tasas_anteriores, obtener_tasa_usd_firebase, guardar_tasa_usd_firebase
-import pytz
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
-def iniciar_scheduler(app, loop):
-    scheduler = AsyncIOScheduler(timezone=ZONA_VE)
+# --- INICIAR SCHEDULER MANUAL CON ASYNCIO ---
+def iniciar_scheduler(app):
+    tareas = [
+        ejecutar_a_medianoche(app),
+        ejecutar_a_las_8_30(app),
+        ejecutar_a_las_10_00(app),
+        ejecutar_el_dia_1_a_media_noche(app),
+        ejecutar_cada_lunes_a_00_30(),
+        verificar_y_ejecutar_si_es_necesario()
+    ]
+    for tarea in tareas:
+        asyncio.create_task(tarea)
+    logger.info("🗓️ Scheduler manual iniciado")
 
-    async def enviar_recordatorio():
+# --- FUNCIONES ASÍNCRONAS DE CONTROL DE TIEMPO ---
+async def esperar_hora_objetivo(hora_objetivo):
+    while True:
+        ahora = datetime.now(ZONA_VE)
+        if ahora.hour == hora_objetivo.hour and ahora.minute == hora_objetivo.minute:
+            return
+        await asyncio.sleep(30)
+
+async def esperar_proxima_fecha_objetivo(condicion):
+    while True:
+        ahora = datetime.now(ZONA_VE)
+        if condicion(ahora):
+            return
+        await asyncio.sleep(60)
+
+# --- EJECUCIONES PROGRAMADAS ---
+async def ejecutar_a_medianoche(app):
+    while True:
+        await esperar_hora_objetivo(datetime.strptime("00:00", "%H:%M"))
+        await _obtener_tasa_diaria()()
+        await asyncio.sleep(60)
+
+async def ejecutar_a_las_8_30(app):
+    while True:
+        await esperar_hora_objetivo(datetime.strptime("08:30", "%H:%M"))
+        await _enviar_recordatorio(app)()
+        await asyncio.sleep(60)
+
+async def ejecutar_a_las_10_00(app):
+    while True:
+        await esperar_hora_objetivo(datetime.strptime("10:00", "%H:%M"))
+        await _obtener_tasa_diaria()()
+        await asyncio.sleep(60)
+
+async def ejecutar_el_dia_1_a_media_noche(app):
+    while True:
+        await esperar_proxima_fecha_objetivo(lambda ahora: ahora.day == 1 and ahora.hour == 0 and ahora.minute == 0)
+        await _recordatorio_donacion(app)()
+        await asyncio.sleep(60)
+
+async def ejecutar_cada_lunes_a_00_30():
+    while True:
+        await esperar_proxima_fecha_objetivo(lambda ahora: ahora.weekday() == 0 and ahora.hour == 0 and ahora.minute == 30)
+        await _limpieza_semanal()()
+        await asyncio.sleep(60)
+
+# --- Verificación de tasa pendiente (si se omitió a las 00:00) ---
+async def verificar_y_ejecutar_si_es_necesario():
+    hoy = datetime.now(ZONA_VE).strftime("%d-%m-%Y")
+    if not _tasa_ya_registrada(hoy):
+        logger.warning("⚠️ No se ejecutó correctamente la tasa a las 00:00. Intentando ejecutarla ahora.")
         try:
-            ahora = datetime.now(ZONA_VE).strftime("%d/%m/%Y %H:%M")
-            mensaje = f"\U0001F4E2 Recordatorio automático:\n\U0001F559 {ahora}\nNo se ha detectado una nueva intervención aún."
+            await _obtener_tasa_diaria()()
+        except Exception as e:
+            logger.error(f"❌ Error al ejecutar verificación retroactiva: {e}")
+
+# --- FUNCIONES ENVOLTORIO ---
+def _enviar_recordatorio(app):
+    async def inner():
+        ahora = datetime.now(ZONA_VE).strftime("%d/%m/%Y %H:%M")
+        mensaje = f"📢 Recordatorio automático:\n🕘 {ahora}\nNo se ha detectado una nueva intervención aún."
+        try:
             await notificar_a_todos(app.bot, mensaje)
-            logger.info("\U0001F559 Recordatorio diario enviado con éxito")
+            logger.info("📢 Recordatorio diario enviado con éxito")
         except Exception as e:
             logger.error(f"❌ Error al enviar recordatorio diario: {e}")
+    return inner
 
-    async def obtener_tasa_diaria():
-        try:
-            hoy = datetime.now(ZONA_VE).strftime("%d-%m-%Y")
-            tasa_guardada = obtener_tasa_usd_firebase(hoy)
-
-            if tasa_guardada is not None:
-                logger.info(f"🔁 La tasa del {hoy} ya está registrada: {tasa_guardada}")
-                return
-
-            logger.info(f"⏳ Tasa del día {hoy} no encontrada. Obteniendo desde BCV...")
-            nueva_tasa = obtener_tasa_usd_bcv_checker()
-
-            if nueva_tasa == "Error":
-                logger.warning("⚠️ No se pudo obtener la tasa desde el checker.")
-            else:
-                try:
-                    valor_numerico = float(nueva_tasa.replace(",", "."))
-                    guardar_tasa_usd_firebase(hoy, valor_numerico)
-                    logger.info(f"✅ Tasa del día {hoy} registrada: {valor_numerico}")
-                except ValueError:
-                    logger.error(f"❌ La tasa obtenida no es un número válido: '{nueva_tasa}'")
-
-        except Exception as e:
-            logger.error(f"❌ Error en obtener_tasa_diaria: {e}")
-
-    async def limpieza_semanal():
-        try:
-            eliminadas = eliminar_tasas_anteriores()
-            logger.info(f"🧹 Limpieza semanal completada: {eliminadas} tasas eliminadas.")
-        except Exception as e:
-            logger.error(f"❌ Error durante la limpieza semanal: {e}")
-
-    async def recordatorio_donacion():
+def _recordatorio_donacion(app):
+    async def inner():
         try:
             await enviar_recordatorio_donacion(app.bot)
             logger.info("💸 Recordatorio de donación mensual enviado")
         except Exception as e:
             logger.error(f"❌ Error al enviar recordatorio de donación: {e}")
+    return inner
 
-    # Programar tareas
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(enviar_recordatorio(), loop),
-                      trigger="cron", hour=8, minute=30,
-                      misfire_grace_time=60, coalesce=True)
+def _limpieza_semanal():
+    async def inner():
+        try:
+            eliminadas = eliminar_tasas_anteriores()
+            logger.info(f"🧹 Limpieza semanal completada: {eliminadas} tasas eliminadas.")
+        except Exception as e:
+            logger.error(f"❌ Error durante la limpieza semanal: {e}")
+    return inner
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop),
-                      trigger="cron", hour=0, minute=0,
-                      misfire_grace_time=300, coalesce=True)
+def _obtener_tasa_diaria():
+    async def inner():
+        hoy = datetime.now(ZONA_VE).date()
 
-    # Ejecución adicional de respaldo a las 10:00 AM
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop),
-                      trigger="cron", hour=10, minute=0,
-                      misfire_grace_time=600, coalesce=True)
+        try:
+            resultado = obtener_tasa_usd_bcv_checker()
+            if not isinstance(resultado, dict):
+                logger.warning("⛔ Resultado inválido desde el BCV.")
+                return
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(recordatorio_donacion(), loop),
-                      trigger="cron", day=1, hour=0, minute=0,
-                      misfire_grace_time=120, coalesce=True)
+            fecha_valor_str = resultado["fecha_valor"]
+            fecha_valor = datetime.strptime(fecha_valor_str, "%d-%m-%Y").date()
+            tasa_nueva = resultado["tasa"]
 
-    scheduler.add_job(lambda: asyncio.run_coroutine_threadsafe(limpieza_semanal(), loop),
-                      trigger="cron", day_of_week="mon", hour=0, minute=30,
-                      misfire_grace_time=120, coalesce=True)
+            # Guardar la nueva tasa solo para la fecha valor oficial
+            if not obtener_tasa_usd_firebase(fecha_valor_str):
+                guardar_tasa_usd_firebase(fecha_valor_str, {
+                    "fecha_valor": fecha_valor_str,
+                    "valor": tasa_nueva
+                })
+                logger.info(f"✅ Tasa oficial guardada para {fecha_valor_str}: {tasa_nueva}")
+            else:
+                logger.info(f"✅ Tasa ya registrada para {fecha_valor_str}")
 
-    scheduler.start()
-    logger.info("🗓️ Scheduler diario activado")
+            # Si la fecha valor es futura, rellenar días entre hoy y (fecha_valor - 1)
+            if fecha_valor > hoy:
+                # Buscar la última tasa anterior a hoy (usualmente del viernes)
+                tasa_anterior = None
+                for delta in range(1, 8):  # buscar hasta 7 días atrás
+                    fecha_anterior = hoy - timedelta(days=delta)
+                    fecha_anterior_str = fecha_anterior.strftime("%d-%m-%Y")
+                    valor = obtener_tasa_usd_firebase(fecha_anterior_str)
+                    if valor:
+                        tasa_anterior = {
+                            "valor": valor,
+                            "fecha_valor": fecha_anterior_str
+                        }
+                        break
 
-    # Verificar y guardar tasa del día al iniciar el bot
-    asyncio.run_coroutine_threadsafe(obtener_tasa_diaria(), loop)
+                if not tasa_anterior:
+                    logger.warning("⚠️ No se encontró una tasa anterior para propagar.")
+                    return
+
+                # Rellenar días intermedios con la tasa anterior
+                dias_intermedios = (fecha_valor - hoy).days
+                for i in range(dias_intermedios):
+                    fecha_intermedia = hoy + timedelta(days=i)
+                    fecha_intermedia_str = fecha_intermedia.strftime("%d-%m-%Y")
+
+                    if not obtener_tasa_usd_firebase(fecha_intermedia_str):
+                        guardar_tasa_usd_firebase(fecha_intermedia_str, tasa_anterior["valor"])
+                        logger.info(f"🕒 Tasa propagada para {fecha_intermedia_str} usando la del {tasa_anterior['fecha_valor']}")
+
+        except Exception as e:
+            logger.error(f"❌ Error en obtener_tasa_diaria: {e}")
+
+    return inner
+
+
+def _tasa_ya_registrada(hoy):
+    tasa = obtener_tasa_usd_firebase(hoy)
+    if tasa:
+        logger.info(f"🔁 La tasa del {hoy} ya está registrada: {tasa}")
+        return True
+    logger.info(f"⏳ Tasa del día {hoy} no encontrada. Obteniendo desde BCV...")
+    return False

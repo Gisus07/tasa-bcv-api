@@ -9,13 +9,45 @@ import urllib3
 # Desactivar la advertencia de SSL
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+def obtener_tasa_usd_bcv_checker():
+    url = "https://www.bcv.org.ve/"
+    try:
+        response = requests.get(url, verify=False)
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Extraer tasa USD
+        usd_strong = soup.select_one("#dolar strong")
+        if not usd_strong:
+            logger.warning("❌ No se encontró el valor de la tasa USD.")
+            return None
+
+        tasa_str = usd_strong.text.strip().replace(",", ".")
+        tasa_float = round(float(tasa_str), 2)
+
+        # Extraer fecha valor desde atributo content
+        fecha_span = soup.select_one(".date-display-single")
+        if not fecha_span or "content" not in fecha_span.attrs:
+            logger.warning("❌ No se encontró la fecha valor.")
+            return None
+
+        fecha_iso = fecha_span["content"].split("T")[0]
+        fecha_valor = datetime.strptime(fecha_iso, "%Y-%m-%d").strftime("%d-%m-%Y")
+
+        return {
+            "fecha_valor": fecha_valor,
+            "tasa": tasa_float
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error al obtener la tasa USD: {e}")
+        return None
+
 def obtener_ultima_intervencion():
     """
     Obtiene la última intervención cambiaria desde la página del BCV y la tasa de USD.
     """
     url = "https://www.bcv.org.ve/politica-cambiaria/intervencion-cambiaria"
     try:
-        # Desactivamos la verificación SSL con verify=False
         response = requests.get(url, verify=False)
         soup = BeautifulSoup(response.text, "html.parser")
         fila = soup.select_one("table tbody tr")
@@ -29,87 +61,29 @@ def obtener_ultima_intervencion():
                 # Obtener tasa USD desde Firebase
                 tasa_usd = obtener_tasa_usd_firebase(fecha_intervencion)
 
+                # Si no hay, hacer scraping
                 if not tasa_usd and fecha_intervencion == hoy:
-                    tasa_usd = obtener_tasa_usd_bcv_checker()  # Si no hay tasa, hacemos scraping y actualizamos
+                    resultado_scraping = obtener_tasa_usd_bcv_checker()
+                    if isinstance(resultado_scraping, dict):
+                        # Guardar en Firebase con formato deseado
+                        doc_data = {
+                            "fecha_valor": resultado_scraping["fecha_valor"],
+                            "valor": resultado_scraping["tasa"]
+                        }
+                        guardar_tasa_usd_firebase(resultado_scraping["fecha_valor"], doc_data)
+                        tasa_usd = doc_data  # para retornarla en el objeto final
 
-                # Convertir el monto a float, limpiando cualquier carácter no numérico como comas
-                monto = columnas[2].get_text(strip=True).replace(",", ".")  # Eliminar comas si existen
-                monto_float = float(monto)  # Convertir a float
+                monto = columnas[2].get_text(strip=True).replace(",", ".")
+                monto_float = float(monto)
 
                 return {
                     "fecha": fecha_intervencion,
                     "intervencion": columnas[1].get_text(strip=True),
-                    "monto": monto_float,  # Guardar monto como float
+                    "monto": monto_float,
                     "usd": tasa_usd
                 }
+
     except Exception as e:
         logger.error(f"❌ Error al obtener la intervención: {e}")
+
     return None
-
-
-def obtener_tasa_usd_bcv_checker():
-    """
-    Obtiene la tasa USD del BCV verificando la 'fecha valor' real desde el sitio.
-    Solo la guarda si aún no está registrada en Firebase.
-    """
-    url = "https://www.bcv.org.ve/"
-
-    try:
-        response = requests.get(url, verify=False)
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        # 1. Extraer la tasa USD
-        tasa_div = soup.select_one("#dolar strong")
-        if not tasa_div:
-            logger.warning("❌ No se encontró el valor de la tasa.")
-            return "No disponible"
-
-        tasa_usd = tasa_div.text.strip().replace("Bs.", "").replace(",", ".")
-        tasa_usd = round(float(tasa_usd), 2)
-
-        # 2. Extraer la fecha valor
-        span_fecha = soup.select_one(".date-display-single")
-        if not span_fecha:
-            logger.warning("❌ No se encontró la fecha valor.")
-            return "No disponible"
-
-        texto_fecha = span_fecha.text.strip()  # Ej: "Lunes, 21 Mayo 2025"
-        match = re.search(r"(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})", texto_fecha)
-        if not match:
-            logger.warning(f"⚠️ No se pudo parsear la fecha valor desde: {texto_fecha}")
-            return "No disponible"
-
-        dia, mes_texto, anio = match.groups()
-        meses = {
-            "Enero": "01", "Febrero": "02", "Marzo": "03",
-            "Abril": "04", "Mayo": "05", "Junio": "06",
-            "Julio": "07", "Agosto": "08", "Septiembre": "09",
-            "Octubre": "10", "Noviembre": "11", "Diciembre": "12"
-        }
-
-        mes = meses.get(mes_texto.capitalize())
-        if not mes:
-            logger.warning(f"❌ Mes no reconocido: {mes_texto}")
-            return "No disponible"
-
-        fecha_valor = f"{dia.zfill(2)}-{mes}-{anio}"
-
-        # 3. Validar si ya está guardada
-        ya_guardada = obtener_tasa_usd_firebase(fecha_valor)
-        if ya_guardada is not None:
-            logger.info(f"ℹ️ La tasa del {fecha_valor} ya está guardada: {ya_guardada}")
-            return str(ya_guardada)
-
-        # 4. Guardar si es nueva y coincide con fecha actual
-        fecha_actual = datetime.now().strftime("%d-%m-%Y")
-        if fecha_valor != fecha_actual:
-            logger.warning(f"⛔ Fecha valor '{fecha_valor}' no coincide con la fecha actual '{fecha_actual}'. No se guarda la tasa.")
-            return "No disponible"
-
-        guardar_tasa_usd_firebase(fecha_valor, tasa_usd)
-        logger.info(f"✅ Tasa guardada para {fecha_valor}: {tasa_usd}")
-        return str(tasa_usd)
-
-    except Exception as e:
-        logger.error(f"❌ Error al obtener la tasa USD: {e}")
-        return "No disponible"
