@@ -11,10 +11,11 @@ from notifier import notificar_a_todos
 from dotenv import load_dotenv
 import os
 import asyncio
-import httpx  # 👈 Agregado
+import httpx
 
 load_dotenv()
-TOKEN = os.getenv("TEST_BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
+# TOKEN = os.getenv("TEST_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 tareas_background = []

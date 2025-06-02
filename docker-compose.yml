@@ -1,9 +1,9 @@
 version: '3.9'
 
 services:
-  bcv_test_bot:
+  bcv_bot:
     build: .
-    container_name: bcv_test_bot
+    container_name: bcv_bot
     env_file:
       - .env  # ← usarás el .env de esta rama
     volumes:
@@ -11,7 +11,7 @@ services:
       - ./firebase_key.json:/app/firebase_key.json:ro
     restart: always
     ports:
-      - "8081:80"  # ← puerto diferente por si quieres hacer pruebas en paralelo
+      - "8080:80"  # ← puerto diferente por si quieres hacer pruebas en paralelo
     healthcheck:
       test: ["CMD", "python", "-c", "print('OK')"]
       interval: 1m
