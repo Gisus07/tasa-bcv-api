@@ -17,14 +17,16 @@ def obtener_tasa_usd_bcv_checker():
 
         # Extraer tasa USD
         usd_strong = soup.select_one("#dolar strong")
-        if not usd_strong:
-            logger.warning("❌ No se encontró el valor de la tasa USD.")
+        eur_strong = soup.select_one("#euro strong")
+
+        if not usd_strong or not eur_strong:
+            logger.warning("❌ No se encontraron todas las tasas necesarias.")
             return None
 
-        tasa_str = usd_strong.text.strip().replace(",", ".")
-        tasa_float = round(float(tasa_str), 2)
+        tasa_usd = round(float(usd_strong.text.strip().replace(",", ".")), 2)
+        tasa_eur = round(float(eur_strong.text.strip().replace(",", ".")), 2)
 
-        # Extraer fecha valor desde atributo content
+        # Extraer fecha valor
         fecha_span = soup.select_one(".date-display-single")
         if not fecha_span or "content" not in fecha_span.attrs:
             logger.warning("❌ No se encontró la fecha valor.")
@@ -35,11 +37,12 @@ def obtener_tasa_usd_bcv_checker():
 
         return {
             "fecha_valor": fecha_valor,
-            "tasa": tasa_float
+            "valor": tasa_usd,
+            "valorEur": tasa_eur
         }
 
     except Exception as e:
-        logger.error(f"❌ Error al obtener la tasa USD: {e}")
+        logger.error(f"❌ Error al obtener las tasas BCV: {e}")
         return None
 
 def obtener_ultima_intervencion():

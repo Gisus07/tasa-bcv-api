@@ -16,7 +16,8 @@ def iniciar_scheduler(app):
         ejecutar_a_las_10_00(app),
         ejecutar_el_dia_1_a_media_noche(app),
         ejecutar_cada_lunes_a_00_30(),
-        verificar_y_ejecutar_si_es_necesario()
+        verificar_y_ejecutar_si_es_necesario(),
+        ejecutar_alerta_tasa_diaria(app),
     ]
     for tarea in tareas:
         asyncio.create_task(tarea)
@@ -66,6 +67,26 @@ async def ejecutar_cada_lunes_a_00_30():
     while True:
         await esperar_proxima_fecha_objetivo(lambda ahora: ahora.weekday() == 0 and ahora.hour == 0 and ahora.minute == 30)
         await _limpieza_semanal()()
+        await asyncio.sleep(60)
+
+async def ejecutar_alerta_tasa_diaria(app):
+    while True:
+        await esperar_hora_objetivo(datetime.strptime("07:00", "%H:%M"))
+        hoy = datetime.now(ZONA_VE).strftime("%d-%m-%Y")
+        datos = obtener_tasa_usd_firebase(hoy)
+        if datos:
+            mensaje = (
+                f"💵 Tasa oficial del día {hoy}:\n"
+                f"• USD: {datos.get('valor', '?')} Bs.\n"
+                f"• EUR: {datos.get('valorEur', '?')} Bs."
+            )
+            try:
+                await notificar_a_todos(app.bot, mensaje)
+                logger.info("📨 Notificación de tasa diaria enviada con éxito.")
+            except Exception as e:
+                logger.error(f"❌ Error al enviar la tasa del día: {e}")
+        else:
+            logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy}.")
         await asyncio.sleep(60)
 
 # --- Verificación de tasa pendiente (si se omitió a las 00:00) ---
@@ -126,7 +147,8 @@ def _obtener_tasa_diaria():
             if not obtener_tasa_usd_firebase(fecha_valor_str):
                 guardar_tasa_usd_firebase(fecha_valor_str, {
                     "fecha_valor": fecha_valor_str,
-                    "valor": tasa_nueva
+                    "valor": resultado["valor"],
+                    "valorEur": resultado["valorEur"]
                 })
                 logger.info(f"✅ Tasa oficial guardada para {fecha_valor_str}: {tasa_nueva}")
             else:
