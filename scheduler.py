@@ -134,14 +134,13 @@ def _obtener_tasa_diaria():
         hoy = datetime.now(ZONA_VE).date()
 
         try:
-            resultado = obtener_tasa_usd_bcv_checker()
+            resultado = obtener_tasa_usd_bcv_checker()  # ← función que devuelve valor y valorEur
             if not isinstance(resultado, dict):
                 logger.warning("⛔ Resultado inválido desde el BCV.")
                 return
 
             fecha_valor_str = resultado["fecha_valor"]
             fecha_valor = datetime.strptime(fecha_valor_str, "%d-%m-%Y").date()
-            tasa_nueva = resultado["tasa"]
 
             # Guardar la nueva tasa solo para la fecha valor oficial
             if not obtener_tasa_usd_firebase(fecha_valor_str):
@@ -150,21 +149,21 @@ def _obtener_tasa_diaria():
                     "valor": resultado["valor"],
                     "valorEur": resultado["valorEur"]
                 })
-                logger.info(f"✅ Tasa oficial guardada para {fecha_valor_str}: {tasa_nueva}")
+                logger.info(f"✅ Tasa oficial guardada para {fecha_valor_str}: {resultado['valor']} USD, {resultado['valorEur']} EUR")
             else:
                 logger.info(f"✅ Tasa ya registrada para {fecha_valor_str}")
 
-            # Si la fecha valor es futura, rellenar días entre hoy y (fecha_valor - 1)
+            # Si la fecha valor es futura, rellenar días entre hoy y fecha_valor
             if fecha_valor > hoy:
-                # Buscar la última tasa anterior a hoy (usualmente del viernes)
                 tasa_anterior = None
-                for delta in range(1, 8):  # buscar hasta 7 días atrás
+                for delta in range(1, 8):
                     fecha_anterior = hoy - timedelta(days=delta)
                     fecha_anterior_str = fecha_anterior.strftime("%d-%m-%Y")
-                    valor = obtener_tasa_usd_firebase(fecha_anterior_str)
-                    if valor:
+                    anterior_data = obtener_tasa_usd_firebase(fecha_anterior_str)
+                    if isinstance(anterior_data, dict) and "valor" in anterior_data:
                         tasa_anterior = {
-                            "valor": valor,
+                            "valor": anterior_data["valor"],
+                            "valorEur": anterior_data.get("valorEur", "No disponible"),
                             "fecha_valor": fecha_anterior_str
                         }
                         break
@@ -180,14 +179,19 @@ def _obtener_tasa_diaria():
                     fecha_intermedia_str = fecha_intermedia.strftime("%d-%m-%Y")
 
                     if not obtener_tasa_usd_firebase(fecha_intermedia_str):
-                        guardar_tasa_usd_firebase(fecha_intermedia_str, tasa_anterior["valor"])
-                        logger.info(f"🕒 Tasa propagada para {fecha_intermedia_str} usando la del {tasa_anterior['fecha_valor']}")
+                        guardar_tasa_usd_firebase(fecha_intermedia_str, {
+                            "fecha_valor": tasa_anterior["fecha_valor"],
+                            "valor": tasa_anterior["valor"],
+                            "valorEur": tasa_anterior["valorEur"]
+                        })
+                        logger.info(
+                            f"🕒 Tasa propagada para {fecha_intermedia_str} usando la del {tasa_anterior['fecha_valor']}"
+                        )
 
         except Exception as e:
             logger.error(f"❌ Error en obtener_tasa_diaria: {e}")
 
     return inner
-
 
 def _tasa_ya_registrada(hoy):
     tasa = obtener_tasa_usd_firebase(hoy)
