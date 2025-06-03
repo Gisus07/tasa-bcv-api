@@ -7,7 +7,7 @@ from firebase_manager import obtener_usuarios_firebase,obtener_intervencion_fire
 from bcv_checker import obtener_ultima_intervencion, obtener_tasa_usd_bcv_checker
 from datetime import datetime, time, timedelta
 from log_manager import logger
-from firebase_manager import guardar_tasa_usd_firebase
+from firebase_manager import guardar_tasa_usd_firebase, obtener_intervencion_firebase
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
@@ -92,14 +92,17 @@ def guardar_datos(datos):
 
 async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        datos = obtener_ultima_intervencion()
+        datos = obtener_intervencion_firebase()
+        if not datos:
+            datos = obtener_ultima_intervencion()
+            if datos:
+                guardar_datos({**datos, "notificado": False})
     except Exception as e:
-        logger.error(f"❌ Error al obtener datos del BCV: {e}")
+        logger.error(f"❌ Error al obtener datos de Firebase o BCV: {e}")
         datos = None
 
     if datos:
-        guardar_datos({**datos, "notificado": False})
-        usd = datos["usd"]
+        usd = datos.get("usd", "?")
         print(f"USD obtenido: {usd}")
         if isinstance(usd, dict):
             tasa = usd.get("valor", "?")
@@ -109,10 +112,10 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             usd_texto = usd
 
         msg = (
-            f"📆 Fecha: {datos['fecha']}\n"
-            f"🔢 Nº Intervención: {datos['intervencion']}\n"
+            f"📆 Fecha: {datos.get('fecha', '?')}\n"
+            f"🔢 Nº Intervención: {datos.get('intervencion', '?')}\n"
             f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
-            f"💰 Tipo de Cambio Bs./EUR: {datos['monto']}"
+            f"💰 Tipo de Cambio Bs./EUR: {datos.get('monto', '?')}"
         )
     else:
         msg = "⚠️ No se pudo obtener la información del BCV."
