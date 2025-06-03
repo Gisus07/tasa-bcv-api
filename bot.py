@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import httpx
+from scheduler import tareas_programadas
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -48,15 +49,33 @@ async def setup_bot(app):
 
 async def cerrar_bot(app):
     logger.info("⏹️ Cerrando tareas...")
+    
+    # 1. Notificar apagado (opcional, si quieres que los usuarios lo sepan)
     try:
         # mensaje = "⚠️ El bot ha sido detenido temporalmente por mantenimiento. Pronto volverá a estar disponible."
         # await notificar_a_todos(app.bot, mensaje)
         logger.info("📴 Notificación de apagado enviada correctamente")
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación de apagado: {e}")
-    for tarea in tareas_background:
-        tarea.cancel()
-    await asyncio.gather(*tareas_background, return_exceptions=True)
+    
+    # 2. Cancelar todas las tareas programadas
+    if tareas_programadas:
+        for tarea in tareas_programadas:
+            if not tarea.done(): # Solo intenta cancelar si la tarea no ha terminado
+                tarea.cancel()
+        
+        # 3. Esperar a que las tareas se cancelen (o finalicen si ya estaban por hacerlo)
+        # Esto es crucial. return_exceptions=True evita que una excepción en una tarea falle todo el gather.
+        # Capturamos las excepciones de cancelación que son esperadas.
+        resultados = await asyncio.gather(*tareas_programadas, return_exceptions=True)
+        for res in resultados:
+            if isinstance(res, asyncio.CancelledError):
+                logger.debug("✅ Tarea cancelada exitosamente.")
+            elif res is not None: # Si hay otra excepción, la registramos
+                logger.error(f"❌ Excepción inesperada al cerrar tarea: {res}")
+    else:
+        logger.info("ℹ️ No hay tareas programadas para cerrar.")
+
     logger.info("✅ Tareas cerradas correctamente.")
 
 async def manejar_errores(update, context: ContextTypes.DEFAULT_TYPE):

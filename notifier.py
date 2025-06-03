@@ -17,7 +17,7 @@ def hora_local():
 def generar_firma():
     ahora = datetime.now(ZONA_VE)
     fecha_firma = ahora.strftime("%Y%m%d\-%H%M")  # <- escapa el guion
-    return f"\n\n🔏 Firma digital: \\`BCV\\-BOT/{fecha_firma}\\`"
+    return f"\n\n🔏 \\`BCV\\-BOT/{fecha_firma}\\`"
 
 def escape_markdown_v2(texto: str) -> str:
     caracteres_escapables = r"_*[]()~`>#+-=|{}.!\\"
@@ -152,8 +152,7 @@ async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
             eur_str = ""
 
         mensaje = (
-            f"💵 Tasa USD según BCV\n"
-            f"📅 {fecha_mostrada}\n"
+            f"💵 Tasa oficial del día {fecha_mostrada}\n"
             f"💰 Bs./USD: {tasa}{eur_str}"
         )
 
