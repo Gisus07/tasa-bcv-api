@@ -58,9 +58,10 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def mostrar_montos_pago_movil():
         keyboard = [
             [InlineKeyboardButton("1$", callback_data="usd_1"),
-             InlineKeyboardButton("5$", callback_data="usd_5"),
-             InlineKeyboardButton("10$", callback_data="usd_10")],
-            [InlineKeyboardButton("💬 Otro monto", callback_data="monto_personalizado")]
+            InlineKeyboardButton("5$", callback_data="usd_5"),
+            InlineKeyboardButton("10$", callback_data="usd_10")],
+            [InlineKeyboardButton("💬 Otro monto", callback_data="monto_personalizado")],
+            [InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]
         ]
         await query.edit_message_text("💸 ¿Cuánto deseas donar en USD?", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -95,7 +96,12 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     async def mostrar_info_pago_movil(usd):
         fecha = datetime.now().strftime("%d-%m-%Y")
-        tasa = obtener_tasa_usd_firebase(fecha)
+        data = obtener_tasa_usd_firebase(fecha)
+        if not isinstance(data, dict) or "valor" not in data:
+            await query.edit_message_text("❌ No se pudo obtener la tasa del día.")
+            return
+        tasa = data["valor"]
+
         if not tasa:
             await query.edit_message_text("❌ No se pudo obtener la tasa del día.")
             return
@@ -107,7 +113,12 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"C.I.: {PAGO_MOVIL['ci']}\n"
             f"Monto: Bs. {bs:,.2f}"
         )
-        await query.edit_message_text(mensaje, parse_mode="Markdown")
+        keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
+        await query.edit_message_text(
+            mensaje,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
     match data:
         case "pago_movil":
@@ -121,10 +132,21 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await mostrar_info_binance(moneda)
 
         case "paypal":
-            await query.edit_message_text(f"🧾 *PayPal*\nCorreo: `{PAYPAL_CORREO}`", parse_mode="Markdown")
+            keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
+            await query.edit_message_text(
+                f"🧾 *PayPal*\nCorreo: `{PAYPAL_CORREO}`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+
 
         case "wally":
-            await query.edit_message_text(f"💼 *Wally*\nTeléfono: `{WALLY_USUARIO}`", parse_mode="Markdown")
+            keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
+            await query.edit_message_text(
+                f"💼 *Wally*\nTeléfono: `{WALLY_USUARIO}`",
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
 
         case _ if data.startswith("usd_"):
             usd = int(data.split("_")[1])
@@ -142,7 +164,11 @@ async def recibir_monto(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             usd = float(update.message.text.replace(",", "."))
             fecha = datetime.now().strftime("%d-%m-%Y")
-            tasa = obtener_tasa_usd_firebase(fecha)
+            data = obtener_tasa_usd_firebase(fecha)
+            if not isinstance(data, dict) or "valor" not in data:
+                await update.message.reply_text("❌ No se pudo obtener la tasa del día.")
+                return
+            tasa = data["valor"]
             if not tasa:
                 await update.message.reply_text("❌ No se pudo obtener la tasa del día.")
                 return
