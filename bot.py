@@ -35,8 +35,8 @@ async def setup_bot(app):
     await app.bot.set_my_commands(comandos_admin, scope=BotCommandScopeChat(chat_id=ADMIN_ID))
 
     try:
-        mensaje_inicio = "✅ El bot vuelve a estar operativo.\n"
-        await notificar_a_todos(app.bot, mensaje_inicio)
+        # mensaje_inicio = "✅ El bot vuelve a estar operativo.\n"
+        # await notificar_a_todos(app.bot, mensaje_inicio)
         logger.info("📢 Notificación de encendido enviada correctamente")
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación de encendido: {e}")
@@ -49,8 +49,8 @@ async def setup_bot(app):
 async def cerrar_bot(app):
     logger.info("⏹️ Cerrando tareas...")
     try:
-        mensaje = "⚠️ El bot ha sido detenido temporalmente por mantenimiento. Pronto volverá a estar disponible."
-        await notificar_a_todos(app.bot, mensaje)
+        # mensaje = "⚠️ El bot ha sido detenido temporalmente por mantenimiento. Pronto volverá a estar disponible."
+        # await notificar_a_todos(app.bot, mensaje)
         logger.info("📴 Notificación de apagado enviada correctamente")
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación de apagado: {e}")

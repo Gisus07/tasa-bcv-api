@@ -185,18 +185,30 @@ async def verificar_bcv_periodicamente(app):
 
         actual = cargar_datos()
         hoy = hora_local().strftime("%d-%m-%Y")
+
         if nueva and nueva["fecha"] != actual["fecha"] and nueva["fecha"] == hoy:
             guardar_datos({**nueva, "notificado": True})
+
             fecha_real = fecha_destino_tasa(nueva["fecha"])
-            guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
-            logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
-            usd = nueva["usd"]
-            if isinstance(usd, dict):
-                tasa = usd.get("tasa", "?")
-                fecha_valor = usd.get("fecha_valor", "?")
-                usd_texto = f"{tasa} (📅 {fecha_valor})"
+            usd_data = nueva["usd"]
+            if isinstance(usd_data, dict):
+                doc_data = {
+                    "fecha_valor": usd_data.get("fecha_valor", nueva["fecha"]),
+                    "valor": usd_data.get("valor"),  # ✅ corregido
+                    "valorEur": nueva.get("monto")
+                }
+                guardar_tasa_usd_firebase(fecha_real, doc_data)
+            
+                usd_texto = f"{doc_data.get('valor', '?')} (📅 {doc_data.get('fecha_valor', '?')})"
             else:
-                usd_texto = usd
+                guardar_tasa_usd_firebase(fecha_real, {
+                    "valor": usd_data,
+                    "valorEur": nueva.get("monto")
+                })
+                usd_texto = usd_data
+            
+
+            logger.info(f"💾 Tasa guardada para {fecha_real}: USD={doc_data.get('valor')} / EUR={doc_data.get('valorEur')}")
 
             mensaje = (
                 f"📢 Nueva Intervención Cambiaria Detectada\n"
@@ -204,14 +216,14 @@ async def verificar_bcv_periodicamente(app):
                 f"🔢 Nº: {nueva['intervencion']}\n"
                 f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
                 f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
-            )
+            ) + generar_firma()
 
-            mensaje += generar_firma()
             await notificar_a_todos(app.bot, mensaje)
             logger.info("✅ Se notificó a todos.")
         else:
             logger.info("📭 Sin cambios.")
-        await asyncio.sleep(1800)
+        await asyncio.sleep(1800)  # 30 minutos
+
 
 async def monitorear_entre_7y830(app):
     ha_reportado_espera = False  # Para evitar repetir el log antes de las 7:00
@@ -277,7 +289,7 @@ def procesar_nueva_intervencion(nueva):
 async def notificar_intervencion(app, nueva):
     usd = nueva["usd"]
     if isinstance(usd, dict):
-        tasa = usd.get("tasa", "?")
+        tasa = usd.get("valor") or usd.get("tasa") or "?"
         fecha_valor = usd.get("fecha_valor", "?")
         usd_texto = f"{tasa} (📅 {fecha_valor})"
     else:
@@ -288,11 +300,12 @@ async def notificar_intervencion(app, nueva):
         f"📆 Fecha: {nueva['fecha']}\n"
         f"🔢 Nº: {nueva['intervencion']}\n"
         f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
-        f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
+        f"💰 Tipo de Cambio Bs./EUR: {nueva.get('monto', '?')}"
     ) + generar_firma()
 
     await notificar_a_todos(app.bot, mensaje)
     logger.info("✅ Intervención detectada y notificada.")
+
 
 async def manejar_fin_franja():
     datos = cargar_datos()
