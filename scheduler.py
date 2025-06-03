@@ -1,9 +1,9 @@
 import asyncio
 import pytz
-from datetime import datetime, timedelta
-from notifier import notificar_a_todos, enviar_recordatorio_donacion
+from datetime import datetime, timedelta, time
+from notifier import notificar_a_todos, enviar_recordatorio_donacion, generar_firma, hora_local, cargar_datos, guardar_datos, fecha_destino_tasa
 from log_manager import logger
-from bcv_checker import obtener_tasa_usd_bcv_checker
+from bcv_checker import obtener_tasa_usd_bcv_checker, obtener_ultima_intervencion
 from firebase_manager import eliminar_tasas_anteriores, obtener_tasa_usd_firebase, guardar_tasa_usd_firebase
 
 ZONA_VE = pytz.timezone("America/Caracas")
@@ -28,6 +28,8 @@ def iniciar_scheduler(app):
         ejecutar_cada_lunes_a_00_30(),
         verificar_y_ejecutar_si_es_necesario(app), # Asegúrate de pasar 'app' si lo necesita
         ejecutar_alerta_tasa_diaria(app),
+        monitorear_entre_7y830(app), # Nueva tarea programada
+        verificar_bcv_periodicamente(app) # Nueva tarea programada
     ]
     for tarea_coro in tareas_a_crear:
         task = asyncio.create_task(tarea_coro)
@@ -181,13 +183,169 @@ async def verificar_y_ejecutar_si_es_necesario(app): # Asegúrate de pasar 'app'
             logger.info("Tarea 'verificar_y_ejecutar_si_es_necesario' cancelada.")
             break
 
+# --- FUNCIONES ENVUELTAS Y MOVIDAS DE NOTIFIER ---
+
+async def verificar_bcv_periodicamente(app):
+    while True:
+        logger.info("⏱️ Verificando BCV (frecuencia periódica)...")
+        try:
+            nueva = obtener_ultima_intervencion()
+        except Exception as e:
+            logger.error(f"❌ Error al obtener datos del BCV: {e}")
+            nueva = None
+
+        actual = cargar_datos()
+        hoy = hora_local().strftime("%d-%m-%Y")
+
+        if nueva and nueva["fecha"] != actual["fecha"] and nueva["fecha"] == hoy:
+            guardar_datos({**nueva, "notificado": True})
+
+            fecha_real = fecha_destino_tasa(nueva["fecha"])
+            usd_data = nueva["usd"]
+            if isinstance(usd_data, dict):
+                doc_data = {
+                    "fecha_valor": usd_data.get("fecha_valor", nueva["fecha"]),
+                    "valor": usd_data.get("valor"),
+                    "valorEur": nueva.get("monto")
+                }
+                guardar_tasa_usd_firebase(fecha_real, doc_data)
+            
+                usd_texto = f"{doc_data.get('valor', '?')} (📅 {doc_data.get('fecha_valor', '?')})"
+            else:
+                guardar_tasa_usd_firebase(fecha_real, {
+                    "valor": usd_data,
+                    "valorEur": nueva.get("monto")
+                })
+                usd_texto = usd_data
+            
+            logger.info(f"💾 Tasa guardada para {fecha_real}: USD={doc_data.get('valor')} / EUR={doc_data.get('valorEur')}")
+
+            mensaje = (
+                f"📢 Nueva Intervención Cambiaria Detectada\n"
+                f"📆 Fecha: {nueva['fecha']}\n"
+                f"🔢 Nº: {nueva['intervencion']}\n"
+                f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
+                f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
+            ) + generar_firma()
+
+            await notificar_a_todos(app.bot, mensaje)
+            logger.info("✅ Se notificó a todos.")
+        else:
+            logger.info("📭 Sin cambios.")
+        await asyncio.sleep(1800)  # 30 minutos
+
+async def monitorear_entre_7y830(app):
+    ha_reportado_espera = False  # Para evitar repetir el log antes de las 7:00
+
+    while True:
+        ahora = hora_local()
+        hora_actual = ahora.time()
+        inicio, fin = time(7, 0), time(8, 30)
+        hoy = ahora.strftime("%d-%m-%Y")
+
+        if inicio <= hora_actual <= fin:
+            ha_reportado_espera = False  # Reset log una vez entre en franja
+            await verificar_durante_franja(app, hoy)
+            await asyncio.sleep(120)  # Cada 2 min durante la franja
+        elif hora_actual > fin:
+            await manejar_fin_franja()
+            siguiente_inicio = ahora.replace(hour=7, minute=0, second=0, microsecond=0) + timedelta(days=1)
+            await asyncio.sleep((siguiente_inicio - ahora).total_seconds())
+        else:
+            if not ha_reportado_espera:
+                logger.info("🌅 Aún no es hora (antes de las 7:00 AM). Esperando...")
+                ha_reportado_espera = True
+            await asyncio.sleep(1800)  # Esperar 30 minutos antes de volver a revisar
+
+# ------------------ FUNCIONES AUXILIARES MOVIDAS ------------------
+
+async def verificar_durante_franja(app, hoy):
+    datos = cargar_datos()
+    if datos.get("notificado", False):
+        logger.info("🛑 Ya se notificó hoy. Esperando siguiente franja.")
+        return
+
+    logger.info("⏱️ Verificando BCV (franja 7:00–8:30 AM)...")
+    nueva = obtener_intervencion_segura()
+    if not es_intervencion_valida(nueva, datos, hoy):
+        logger.info("📭 Sin cambios.")
+        return
+
+    procesar_nueva_intervencion(nueva)
+    await notificar_intervencion(app, nueva)
+
+def obtener_intervencion_segura():
+    try:
+        return obtener_ultima_intervencion()
+    except Exception as e:
+        logger.error(f"❌ Error al obtener datos del BCV: {e}")
+        return None
+
+def es_intervencion_valida(nueva, datos_actuales, hoy):
+    return nueva and nueva["fecha"] != datos_actuales["fecha"] and nueva["fecha"] == hoy
+
+def procesar_nueva_intervencion(nueva):
+    nueva["notificado"] = True
+    guardar_datos(nueva)
+
+    fecha_real = fecha_destino_tasa(nueva["fecha"])
+    if not obtener_tasa_usd_firebase(fecha_real):
+        guardar_tasa_usd_firebase(fecha_real, nueva["usd"])
+        logger.info(f"💾 Tasa guardada para {fecha_real}: {nueva['usd']}")
+    else:
+        logger.info(f"ℹ️ Tasa ya estaba guardada para {fecha_real}, no se sobrescribió.")
+
+async def notificar_intervencion(app, nueva):
+    usd = nueva["usd"]
+    if isinstance(usd, dict):
+        tasa = usd.get("valor") or usd.get("tasa") or "?"
+        fecha_valor = usd.get("fecha_valor", "?")
+        usd_texto = f"{tasa} (📅 {fecha_valor})"
+    else:
+        usd_texto = usd
+
+    mensaje = (
+        f"📢 Nueva Intervención Cambiaria Detectada\n"
+        f"📆 Fecha: {nueva['fecha']}\n"
+        f"🔢 Nº: {nueva['intervencion']}\n"
+        f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
+        f"💰 Tipo de Cambio Bs./EUR: {nueva.get('monto', '?')}"
+    ) + generar_firma()
+
+    await notificar_a_todos(app.bot, mensaje)
+    logger.info("✅ Intervención detectada y notificada.")
+
+async def manejar_fin_franja():
+    datos = cargar_datos()
+    if not datos.get("notificado", False):
+        logger.info("📌 No hubo intervención hoy. Fin del monitoreo diario.")
+    else:
+        logger.info("🛑 Ya se notificó hoy. Descansando hasta mañana.")
+
+
 # --- FUNCIONES ENVOLTORIO ---
 # (Mantienen su estructura, pero es importante que las funciones internas sean `async`)
 
 def _enviar_recordatorio(app):
     async def inner():
-        ahora = datetime.now(ZONA_VE).strftime("%d/%m/%Y %H:%M")
-        mensaje = f"📢 Recordatorio automático:\n🕘 {ahora}\nNo se ha detectado una nueva intervención aún."
+        # Obtener la fecha actual en el formato "dd-mm-yyyy" para la comparación con Firebase
+        hoy_para_comparacion = hora_local().strftime("%d-%m-%Y") 
+        datos_intervencion = cargar_datos()
+
+        # Verificar si la última intervención registrada es de hoy y ya fue notificada
+        if datos_intervencion and datos_intervencion.get("fecha") == hoy_para_comparacion and datos_intervencion.get("notificado"):
+            logger.info(f"🚫 No se envía recordatorio a las 08:30 AM. Intervención del día {hoy_para_comparacion} ya notificada.")
+            return
+
+        # Para el mensaje al usuario, podemos usar un formato más amigable si se desea,
+        # o el mismo formato de la fecha de la intervención si queremos consistencia visual.
+        # Aquí mantendremos el formato "dd/mm/yyyy HH:MM" para el mensaje.
+        ahora_mensaje = datetime.now(ZONA_VE).strftime("%d/%m/%Y %H:%M")
+        mensaje = (
+            f"📢 Recordatorio automático:\n"
+            f"🕘 {ahora_mensaje}\n" # Usamos ahora_mensaje aquí
+            f"No se ha detectado una nueva intervención aún."
+        )
         try:
             await notificar_a_todos(app.bot, mensaje)
             logger.info("📢 Recordatorio diario enviado con éxito")
