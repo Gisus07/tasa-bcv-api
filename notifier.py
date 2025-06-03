@@ -44,38 +44,48 @@ def obtener_tasa_usd_hoy():
         hoy_str = hoy.strftime("%d-%m-%Y")
 
         # Intentamos obtener la tasa desde Firebase
-        valor = obtener_tasa_usd_firebase(hoy_str)
+        data = obtener_tasa_usd_firebase(hoy_str)
 
-        # Si no encontramos la tasa en Firebase, la obtenemos del BCV
-        if not valor:
+        # Si no encontramos la tasa, hacemos scraping desde el BCV
+        if not data:
             logger.info(f"Tasa de {hoy_str} no encontrada en Firebase. Intentando obtenerla desde el BCV...")
-            resultado = obtener_tasa_usd_bcv_checker()
+            resultado = obtener_tasa_usd_bcv_checker()  # ← función nueva que devuelve USD y EUR
 
             if isinstance(resultado, dict):
                 fecha_valor = resultado.get("fecha_valor")
-                tasa_str = resultado.get("tasa")
 
                 if fecha_valor == hoy_str:
                     try:
-                        valor_numerico = float(tasa_str)
+                        valor_usd = float(resultado.get("valor"))
+                        valor_eur = float(resultado.get("valorEur"))
+
                         doc_data = {
                             "fecha_valor": fecha_valor,
-                            "valor": valor_numerico
+                            "valor": valor_usd,
+                            "valorEur": valor_eur
                         }
+
                         guardar_tasa_usd_firebase(hoy_str, doc_data)
                         logger.info(f"✅ Tasa del día {hoy_str} registrada: {doc_data}")
-                        valor = tasa_str
-                    except ValueError:
-                        logger.error(f"❌ La tasa obtenida no es un número válido: '{tasa_str}'")
+                        data = doc_data
+                    except (ValueError, TypeError):
+                        logger.error(f"❌ Error al convertir las tasas: {resultado}")
                 else:
                     logger.warning(f"⛔ La fecha valor '{fecha_valor}' no coincide con hoy '{hoy_str}'. No se guarda la tasa.")
+        
+        # Extraer valores para retorno
+        if isinstance(data, dict):
+            valor = data.get("valor", "No disponible")
+            valorEur = data.get("valorEur", "No disponible")
+        else:
+            valor = data
+            valorEur = "No disponible"
 
-        return valor or "No disponible", hoy_str, hoy_str
+        return valor, hoy_str, valorEur, hoy_str
 
     except Exception as e:
         logger.error(f"❌ Error al obtener o guardar la tasa desde Firestore o BCV: {e}")
-        return "Error", None, None
-
+        return "Error", None, None, None
 
 def cargar_datos():
     datos = obtener_intervencion_firebase()
