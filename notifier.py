@@ -124,24 +124,28 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    valor, fecha_mostrada, _ = obtener_tasa_usd_hoy()
+    valor, fecha_mostrada, valorEur, _ = obtener_tasa_usd_hoy()
 
     if valor in ["No disponible", "Error"]:
         mensaje = f"⚠️ No se pudo obtener la tasa del día {fecha_mostrada or 'actual'}"
     else:
         if isinstance(valor, dict):
             tasa = valor.get("valor", "?")
-            mensaje = (
-                f"💵 Tasa USD según BCV\n"
-                f"📅 {fecha_mostrada}\n"
-                f"💰 Bs./USD: {tasa}"
-            )
         else:
-            mensaje = (
-                f"💵 Tasa USD según BCV\n"
-                f"📅 {fecha_mostrada}\n"
-                f"💰 Bs./USD: {valor}"
-            )
+            tasa = valor
+
+        # Validar si valorEur es numérico
+        try:
+            valor_eur_valido = float(valorEur)
+            eur_str = f"\n💰 Bs./EUR: {valor_eur_valido}"
+        except (ValueError, TypeError):
+            eur_str = ""
+
+        mensaje = (
+            f"💵 Tasa USD según BCV\n"
+            f"📅 {fecha_mostrada}\n"
+            f"💰 Bs./USD: {tasa}{eur_str}"
+        )
 
     await update.message.reply_text(mensaje)
 
