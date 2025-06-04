@@ -3,8 +3,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 from telegram.error import NetworkError, TelegramError
 from donaciones import donar, manejar_opciones, recibir_monto
 from subs_manager import start, stop
-from notifier import ultimo, tasa_actual, verificar_bcv_periodicamente, monitorear_entre_7y830
-from scheduler import iniciar_scheduler
+from notifier import ultimo, tasa_actual
+from scheduler import iniciar_scheduler, verificar_bcv_periodicamente, monitorear_entre_7y830
 from log_manager import logger
 from limpiar_tasas import limpiar_tasas
 from notifier import notificar_a_todos
