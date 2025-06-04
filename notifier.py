@@ -2,12 +2,12 @@ import pytz
 import asyncio
 from telegram import Update
 from telegram.ext import ContextTypes
-from telegram.error import NetworkError
+from telegram.error import Forbidden, TelegramError
 from firebase_manager import obtener_usuarios_firebase,obtener_intervencion_firebase, guardar_intervencion_firebase, obtener_tasa_usd_firebase
 from bcv_checker import obtener_ultima_intervencion, obtener_tasa_usd_bcv_checker
 from datetime import datetime, time, timedelta
 from log_manager import logger
-from firebase_manager import guardar_tasa_usd_firebase, obtener_intervencion_firebase
+from firebase_manager import guardar_tasa_usd_firebase, obtener_intervencion_firebase, eliminar_usuario_firebase
 
 ZONA_VE = pytz.timezone("America/Caracas")
 
@@ -158,20 +158,28 @@ async def tasa_actual(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(mensaje)
 
-async def notificar_a_todos(bot, mensaje):
+async def notificar_a_todos(bot, mensaje: str):
     usuarios = obtener_usuarios_firebase()
-    for uid in usuarios:
+    if not usuarios:
+        logger.warning("⚠️ No hay usuarios registrados para notificar.")
+        return
+
+    async def notificar(uid):
         try:
             await bot.send_message(chat_id=uid, text=mensaje)
-        except NetworkError as e:
-            logger.warning(f"🌐 Error de red al notificar a {uid}. Reintentando en 3s...")
-            await asyncio.sleep(3)
-            try:
-                await bot.send_message(chat_id=uid, text=mensaje)
-            except Exception as e2:
-                logger.error(f"❌ Segundo intento fallido para {uid}: {e2}")
+        except Forbidden:
+            logger.warning(f"🚫 Usuario {uid} bloqueó al bot. Eliminando de la base.")
+            eliminar_usuario_firebase(uid)
+        except TelegramError as e:
+            logger.error(f"❌ Error de Telegram al notificar a {uid}: {e}")
         except Exception as e:
             logger.error(f"❌ Error inesperado al notificar a {uid}: {e}")
+
+    try:
+        await asyncio.gather(*(notificar(uid) for uid in usuarios))
+        logger.info(f"✅ Notificación enviada a {len(usuarios)} usuarios.")
+    except Exception as e:
+        logger.error(f"❌ Error en la ejecución paralela de notificaciones: {e}")
 
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print("✅ Entró al comando /ping")

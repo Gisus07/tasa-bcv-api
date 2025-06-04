@@ -17,6 +17,16 @@ def obtener_usuarios_firebase():
         return doc.to_dict().get("ids", [])
     return []
 
+def eliminar_usuario_firebase(uid):
+    doc_ref = db.collection("datos").document("usuarios")
+    doc = doc_ref.get()
+    if doc.exists:
+        data = doc.to_dict()
+        lista = data.get("ids", [])
+        if uid in lista:
+            lista.remove(uid)
+            doc_ref.set({"ids": lista})
+
 # 🔹 INTERVENCIÓN
 def guardar_intervencion_firebase(data):
     doc_ref = db.collection("datos").document("intervencion")

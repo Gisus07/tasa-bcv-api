@@ -29,7 +29,6 @@ def iniciar_scheduler(app):
         verificar_y_ejecutar_si_es_necesario(app), # Asegúrate de pasar 'app' si lo necesita
         ejecutar_alerta_tasa_diaria(app),
         monitorear_entre_7y830(app), # Nueva tarea programada
-        verificar_bcv_periodicamente(app) # Nueva tarea programada
     ]
     for tarea_coro in tareas_a_crear:
         task = asyncio.create_task(tarea_coro)
@@ -78,13 +77,28 @@ async def ejecutar_a_medianoche(app):
     while True:
         try:
             await esperar_hora_objetivo(datetime.strptime("00:00", "%H:%M").time())
-            logger.info("⚡ Ejecutando tarea de medianoche (obtener tasa diaria)...")
-            await _obtener_tasa_diaria()()
-            # Espera un tiempo para evitar múltiples ejecuciones en el mismo minuto
+            logger.info("⚡ Ejecutando tarea de medianoche (obtener tasa diaria y resetear estados)...")
+
+            # --- NUEVA LÓGICA DE RESETEO DIARIO ---
+            datos = cargar_datos()
+            hoy = hora_local().strftime("%d-%m-%Y")
+            # Solo resetea si la fecha guardada es de un día anterior, para iniciar el nuevo día "limpio"
+            if datos.get("fecha") != hoy:
+                datos["notificado"] = False
+                datos["tasa_notificada"] = False
+                # Opcional: podrías mantener la "fecha" como la del último dato conocido
+                # o también resetearla, dependiendo de tu necesidad de persistencia histórica.
+                # datos["fecha"] = hoy # <-- Si quieres que la fecha en datos.json sea siempre la del día actual al inicio
+                guardar_datos(datos)
+                logger.info("🔄 Banderas 'notificado' y 'tasa_notificada' reseteadas para el nuevo día.")
+            # --- FIN LÓGICA DE RESETEO ---
+
+            await _obtener_tasa_diaria()() # Esto podría actualizar tasa_notificada a True si ya existe la tasa
+
             await asyncio.sleep(60) 
         except asyncio.CancelledError:
             logger.info("Tarea 'ejecutar_a_medianoche' cancelada.")
-            break # Sale del bucle while True
+            break
 
 async def ejecutar_a_las_8_30(app):
     while True:
@@ -135,104 +149,71 @@ async def ejecutar_cada_lunes_a_00_30():
 async def ejecutar_alerta_tasa_diaria(app):
     while True:
         try:
-            await esperar_hora_objetivo(datetime.strptime("07:00", "%H:%M").time())
-            logger.info("⚡ Ejecutando tarea de alerta de tasa diaria...")
-            hoy = datetime.now(ZONA_VE).strftime("%d-%m-%Y")
-            datos = obtener_tasa_usd_firebase(hoy)
-            if datos:
-                mensaje = (
-                    f"💵 Tasa oficial del día {hoy}:\n"
-                    f"• USD: {datos.get('valor', '?')} Bs.\n"
-                    f"• EUR: {datos.get('valorEur', '?')} Bs."
-                )
-                try:
-                    # Asumiendo que notificar_a_todos ya escapa el mensaje si usa MarkdownV2
-                    await notificar_a_todos(app.bot, mensaje) 
-                    logger.info("📨 Notificación de tasa diaria enviada con éxito.")
-                except Exception as e:
-                    logger.error(f"❌ Error al enviar la tasa del día: {e}")
+            ahora = hora_local()
+            hoy_str = ahora.strftime("%d-%m-%Y")
+            estado = cargar_datos()
+
+            # Solo si no se ha notificado aún
+            if not estado.get("tasa_notificada", False):
+                if ahora.time() >= time(7, 0):  # Ya pasaron las 07:00
+                    datos = obtener_tasa_usd_firebase(hoy_str)
+                    if datos:
+                        mensaje = (
+                            f"💵 Tasa oficial del día {hoy_str}:\n"
+                            f"• USD: {datos.get('valor', '?')} Bs.\n"
+                            f"• EUR: {datos.get('valorEur', '?')} Bs."
+                        )
+                        try:
+                            await notificar_a_todos(app.bot, mensaje)
+                            estado["tasa_notificada"] = True
+                            guardar_datos(estado)
+                            logger.info("📨 Notificación de tasa diaria enviada con éxito (ejecución inmediata).")
+                        except Exception as e:
+                            logger.error(f"❌ Error al enviar la tasa del día: {e}")
+                    else:
+                        logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy_str}.")
+                else:
+                    # Esperar hasta las 07:00
+                    await esperar_hora_objetivo(time(7, 0))
+                    continue
             else:
-                logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy}.")
-            await asyncio.sleep(60) # Espera para no repetir en el mismo minuto
+                logger.info("🔕 La tasa diaria ya fue notificada.")
+            break  # Solo se ejecuta una vez por día
         except asyncio.CancelledError:
             logger.info("Tarea 'ejecutar_alerta_tasa_diaria' cancelada.")
             break
 
 # --- Verificación de tasa pendiente (si se omitió a las 00:00) ---
-async def verificar_y_ejecutar_si_es_necesario(app): # Asegúrate de pasar 'app'
+async def verificar_y_ejecutar_si_es_necesario(app):
+    intentos_fallidos = 0  # Contador opcional si quieres permitir varios intentos antes de detener
     while True:
         try:
             ahora = datetime.now(ZONA_VE)
-            # Solo corre esta verificación una vez al día o en momentos clave si es necesario
-            # Por simplicidad, la haremos cada 5 minutos durante todo el día para ver si se omitió la medianoche
-            # Puedes ajustar la lógica para que sea menos frecuente si es necesario.
-            
             hoy = ahora.strftime("%d-%m-%Y")
-            if not _tasa_ya_registrada(hoy):
-                # Esto es para asegurar que si el bot se reinicia y la tasa de medianoche no se grabó,
-                # se intente obtenerla.
-                logger.warning("⚠️ No se ejecutó correctamente la tasa a las 00:00 o no está registrada. Intentando ejecutarla ahora.")
-                try:
-                    await _obtener_tasa_diaria()()
-                except Exception as e:
-                    logger.error(f"❌ Error al ejecutar verificación retroactiva: {e}")
-            
-            # Ajusta el tiempo de espera según la frecuencia deseada para esta verificación
-            await asyncio.sleep(300) # Espera 5 minutos antes de volver a verificar
+
+            if _tasa_ya_registrada(hoy):
+                logger.info("🛑 Tasa ya registrada correctamente. Finalizando verificación retroactiva.")
+                break  # Salimos del ciclo, no seguimos revisando
+
+            logger.warning("⚠️ No se ejecutó correctamente la tasa a las 00:00 o no está registrada. Intentando ejecutarla ahora.")
+            try:
+                await _obtener_tasa_diaria()()
+                intentos_fallidos += 1
+            except Exception as e:
+                logger.error(f"❌ Error al ejecutar verificación retroactiva: {e}")
+                intentos_fallidos += 1
+
+            # Opcional: detiene si ha fallado muchas veces
+            if intentos_fallidos >= 5:
+                logger.error("❌ Se alcanzó el límite de intentos fallidos. Deteniendo verificación retroactiva.")
+                break
+
+            await asyncio.sleep(300)  # Esperar 5 minutos
         except asyncio.CancelledError:
             logger.info("Tarea 'verificar_y_ejecutar_si_es_necesario' cancelada.")
             break
 
 # --- FUNCIONES ENVUELTAS Y MOVIDAS DE NOTIFIER ---
-
-async def verificar_bcv_periodicamente(app):
-    while True:
-        logger.info("⏱️ Verificando BCV (frecuencia periódica)...")
-        try:
-            nueva = obtener_ultima_intervencion()
-        except Exception as e:
-            logger.error(f"❌ Error al obtener datos del BCV: {e}")
-            nueva = None
-
-        actual = cargar_datos()
-        hoy = hora_local().strftime("%d-%m-%Y")
-
-        if nueva and nueva["fecha"] != actual["fecha"] and nueva["fecha"] == hoy:
-            guardar_datos({**nueva, "notificado": True})
-
-            fecha_real = fecha_destino_tasa(nueva["fecha"])
-            usd_data = nueva["usd"]
-            if isinstance(usd_data, dict):
-                doc_data = {
-                    "fecha_valor": usd_data.get("fecha_valor", nueva["fecha"]),
-                    "valor": usd_data.get("valor"),
-                    "valorEur": nueva.get("monto")
-                }
-                guardar_tasa_usd_firebase(fecha_real, doc_data)
-            
-                usd_texto = f"{doc_data.get('valor', '?')} (📅 {doc_data.get('fecha_valor', '?')})"
-            else:
-                guardar_tasa_usd_firebase(fecha_real, {
-                    "valor": usd_data,
-                    "valorEur": nueva.get("monto")
-                })
-                usd_texto = usd_data
-            
-            logger.info(f"💾 Tasa guardada para {fecha_real}: USD={doc_data.get('valor')} / EUR={doc_data.get('valorEur')}")
-
-            mensaje = (
-                f"📢 Nueva Intervención Cambiaria Detectada\n"
-                f"📆 Fecha: {nueva['fecha']}\n"
-                f"🔢 Nº: {nueva['intervencion']}\n"
-                f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
-                f"💰 Tipo de Cambio Bs./EUR: {nueva['monto']}"
-            ) + generar_firma()
-
-            await notificar_a_todos(app.bot, mensaje)
-            logger.info("✅ Se notificó a todos.")
-        else:
-            logger.info("📭 Sin cambios.")
-        await asyncio.sleep(1800)  # 30 minutos
 
 async def monitorear_entre_7y830(app):
     ha_reportado_espera = False  # Para evitar repetir el log antes de las 7:00
@@ -261,25 +242,44 @@ async def monitorear_entre_7y830(app):
 
 async def verificar_durante_franja(app, hoy):
     datos = cargar_datos()
-    if datos.get("notificado", False):
-        logger.info("🛑 Ya se notificó hoy. Esperando siguiente franja.")
+    fecha_datos_guardados = datos.get("fecha", "") # Renombrado para mayor claridad
+
+    # 1. Si ya se notificó una intervención (nueva o heredada) para HOY, salimos.
+    #    'datos.get("notificado", False)' se refiere a la última intervención procesada.
+    #    Si esa última intervención fue de hoy y ya se notificó, significa que ya hicimos nuestro trabajo.
+    if datos.get("notificado", False) and fecha_datos_guardados == hoy:
+        logger.info(f"🛑 Intervención del día {hoy} ya notificada (o procesada). Esperando siguiente franja.")
         return
 
     logger.info("⏱️ Verificando BCV (franja 7:00–8:30 AM)...")
-    nueva = obtener_intervencion_segura()
-    if not es_intervencion_valida(nueva, datos, hoy):
-        logger.info("📭 Sin cambios.")
-        return
+    nueva_intervencion_bcv = obtener_intervencion_segura()
 
-    procesar_nueva_intervencion(nueva)
-    await notificar_intervencion(app, nueva)
-
-def obtener_intervencion_segura():
-    try:
-        return obtener_ultima_intervencion()
-    except Exception as e:
-        logger.error(f"❌ Error al obtener datos del BCV: {e}")
-        return None
+    # 2. Verificar si hay una NUEVA intervención del BCV para HOY
+    if es_intervencion_valida(nueva_intervencion_bcv, datos, hoy):
+        logger.info("🎉 ¡Nueva Intervención BCV detectada para hoy!")
+        procesar_nueva_intervencion(nueva_intervencion_bcv) # Esto actualiza datos.json y Firebase
+        await notificar_intervencion(app, nueva_intervencion_bcv)
+    else:
+        # 3. Si NO hay nueva intervención para HOY, pero estamos en la franja y es la primera vez que lo notamos hoy.
+        #    Esto se refiere a la lógica que quieres cambiar: si no hubo nueva,
+        #    queremos marcar que la situación del día YA FUE VERIFICADA y "notificada" internamente.
+        #    La condición "fecha_datos_guardados != hoy" asegura que solo lo hagamos si el registro
+        #    guardado es de un día anterior.
+        if fecha_datos_guardados != hoy:
+            # Actualizar los datos guardados para el día actual con la información "antigua"
+            # y marcarla como notificada para hoy.
+            # Esto evita que el recordatorio de las 8:30 AM se envíe y que este monitoreo se repita sin fin.
+            datos_para_actualizar = datos.copy() # Hacemos una copia para no modificar el original directamente
+            datos_para_actualizar["fecha"] = hoy # Importante: actualizamos la fecha a HOY
+            # Si el BCV no ha publicado, asumimos que la tasa vigente es la última conocida
+            # y la marcamos como "notificada" para hoy en el estado local.
+            datos_para_actualizar["notificado"] = True
+            guardar_datos(datos_para_actualizar)
+            logger.info(f"✅ No hay nueva intervención para hoy {hoy}. Estado actualizado para el día actual (no se enviará recordatorio).")
+            # Podrías opcionalmente aquí enviar una notificación simple que diga "No hay nueva intervención".
+            # Pero la idea es que el recordatorio de las 8:30 ya no se envíe.
+        else:
+            logger.info("📭 Sin cambios (o ya procesado para hoy con información anterior).")
 
 def es_intervencion_valida(nueva, datos_actuales, hoy):
     return nueva and nueva["fecha"] != datos_actuales["fecha"] and nueva["fecha"] == hoy
@@ -317,38 +317,59 @@ async def notificar_intervencion(app, nueva):
 
 async def manejar_fin_franja():
     datos = cargar_datos()
-    if not datos.get("notificado", False):
-        logger.info("📌 No hubo intervención hoy. Fin del monitoreo diario.")
-    else:
-        logger.info("🛑 Ya se notificó hoy. Descansando hasta mañana.")
 
+    # Al final de la franja, si ya se notificó una intervención hoy (por el monitoreo)
+    # o si la fecha de los datos guardados ya es hoy (indicando que se procesó la ausencia de intervencion)
+    # entonces marcamos que la tasa del día ya está "resuelta" para fines de recordatorio.
+    if datos.get("notificado", False) and datos.get("fecha", "") == hora_local().strftime("%d-%m-%Y"):
+        logger.info("🛑 Ya se notificó una intervención hoy. Descansando hasta mañana.")
+        datos["tasa_notificada"] = True # Marcamos que la "tasa del día" ya fue manejada
+    else:
+        # Si no hubo intervención NUEVA Y no se ha notificado nada para hoy,
+        # significa que la franja terminó y no hubo.
+        # Aquí podríamos decidir si enviar un aviso de "no hay intervención"
+        # y luego marcar tasa_notificada = True.
+        logger.info("📌 No hubo intervención hoy. Fin del monitoreo diario.")
+        # Opcional: Aquí podrías enviar un mensaje diciendo "No hubo nueva intervención hoy"
+        # y luego marcar tasa_notificada = True para evitar el recordatorio de las 8:30.
+        # Por ahora, simplemente la marcamos como True si no hubo para que el recordatorio de las 8:30 no se envíe.
+        datos["tasa_notificada"] = True # Marcamos que la situación de la tasa ya está "resuelta" para hoy.
+
+    # Este reseteo debe ser al inicio de un *nuevo* día, no al final de la franja del día actual.
+    # Lo movería a la medianoche.
+    # datos["tasa_notificada"] = False # <-- ¡Cuidado con esto! Esto lo resetea para el *próximo* ciclo.
+                                      #    Debería resetearse a medianoche del día siguiente.
+    guardar_datos(datos)
+    logger.info(f"💾 Estado guardado en manejar_fin_franja: tasa_notificada={datos['tasa_notificada']}")
 
 # --- FUNCIONES ENVOLTORIO ---
 # (Mantienen su estructura, pero es importante que las funciones internas sean `async`)
 
 def _enviar_recordatorio(app):
     async def inner():
-        # Obtener la fecha actual en el formato "dd-mm-yyyy" para la comparación con Firebase
-        hoy_para_comparacion = hora_local().strftime("%d-%m-%Y") 
-        datos_intervencion = cargar_datos()
+        hoy_para_comparacion = hora_local().strftime("%d-%m-%Y")
+        datos = cargar_datos() # Cargar los datos más recientes
 
-        # Verificar si la última intervención registrada es de hoy y ya fue notificada
-        if datos_intervencion and datos_intervencion.get("fecha") == hoy_para_comparacion and datos_intervencion.get("notificado"):
-            logger.info(f"🚫 No se envía recordatorio a las 08:30 AM. Intervención del día {hoy_para_comparacion} ya notificada.")
+        # Verificar si la "tasa del día" ya fue notificada (por la franja de monitoreo o la de medianoche)
+        # o si ya se procesó la intervención de hoy.
+        # Usamos 'tasa_notificada' para esto, que ahora será gestionada por 'manejar_fin_franja'.
+        if datos.get("tasa_notificada", False) and datos.get("fecha", "") == hoy_para_comparacion:
+            logger.info(f"🚫 No se envía recordatorio a las 08:30 AM. La tasa del día {hoy_para_comparacion} ya fue notificada o procesada.")
             return
 
-        # Para el mensaje al usuario, podemos usar un formato más amigable si se desea,
-        # o el mismo formato de la fecha de la intervención si queremos consistencia visual.
-        # Aquí mantendremos el formato "dd/mm/yyyy HH:MM" para el mensaje.
+        # Aquí la lógica original para enviar el recordatorio si no se cumplió la condición de arriba
         ahora_mensaje = datetime.now(ZONA_VE).strftime("%d/%m/%Y %H:%M")
         mensaje = (
             f"📢 Recordatorio automático:\n"
-            f"🕘 {ahora_mensaje}\n" # Usamos ahora_mensaje aquí
-            f"No se ha detectado una nueva intervención aún."
+            f"🕘 {ahora_mensaje}\n"
+            f"No se ha detectado una nueva intervención."
         )
         try:
             await notificar_a_todos(app.bot, mensaje)
             logger.info("📢 Recordatorio diario enviado con éxito")
+            # Después de enviar el recordatorio, marcamos que la tasa del día ya está notificada
+            datos["tasa_notificada"] = True
+            guardar_datos(datos)
         except Exception as e:
             logger.error(f"❌ Error al enviar recordatorio diario: {e}")
     return inner

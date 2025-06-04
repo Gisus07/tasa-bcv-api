@@ -4,10 +4,10 @@ from telegram.error import NetworkError, TelegramError
 from donaciones import donar, manejar_opciones, recibir_monto
 from subs_manager import start, stop
 from notifier import ultimo, tasa_actual
-from scheduler import iniciar_scheduler, verificar_bcv_periodicamente, monitorear_entre_7y830
+from scheduler import iniciar_scheduler
 from log_manager import logger
 from limpiar_tasas import limpiar_tasas
-from notifier import notificar_a_todos
+from eliminar_bloqueados import eliminar_bloqueados
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -28,6 +28,7 @@ async def setup_bot(app):
         BotCommand("donar", "Mostrar métodos de donación")
     ]
     comandos_admin = comandos_publicos + [
+        BotCommand("eliminar_bloqueados", "(Admin) Eliminar usuarios que bloquearon al bot"),
         BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas")
     ]
     await app.bot.set_my_commands(comandos_publicos, scope=BotCommandScopeDefault())
@@ -92,6 +93,7 @@ def main():
         app.add_handler(CommandHandler("ultimo", ultimo))
         app.add_handler(CommandHandler("tasa", tasa_actual))
         app.add_handler(CommandHandler("donar", donar))
+        app.add_handler(CommandHandler("eliminar_bloqueados", eliminar_bloqueados))
         app.add_handler(CallbackQueryHandler(manejar_opciones))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_monto))
         app.add_handler(CommandHandler("limpiar_tasas", limpiar_tasas))
