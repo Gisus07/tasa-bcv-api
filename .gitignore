@@ -30,3 +30,6 @@ firebase_key_test_prod.jsonc
 
 # Docker
 docker-compose.yml
+
+#PowerShell
+reiniciar-bot.ps1

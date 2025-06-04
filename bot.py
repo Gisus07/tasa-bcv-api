@@ -19,8 +19,6 @@ TOKEN = os.getenv("BOT_TOKEN")
 # TOKEN = os.getenv("TEST_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
-tareas_background = []
-
 async def setup_bot(app):
     comandos_publicos = [
         BotCommand("start", "Suscribirse a alertas del BCV"),
@@ -43,8 +41,6 @@ async def setup_bot(app):
         logger.error(f"❌ Error al enviar notificación de encendido: {e}")
 
     iniciar_scheduler(app)
-    tareas_background.append(asyncio.create_task(verificar_bcv_periodicamente(app)))
-    tareas_background.append(asyncio.create_task(monitorear_entre_7y830(app)))
     logger.info("✅ Bot iniciado y en espera")
 
 async def cerrar_bot(app):
@@ -88,28 +84,27 @@ async def manejar_errores(update, context: ContextTypes.DEFAULT_TYPE):
         logger.warning(f"⚠️ Error de Telegram: {context.error}")
 
 def main():
-    while True:
-        try:
-            app = ApplicationBuilder().token(TOKEN).post_init(lambda app: setup_bot(app)).post_stop(cerrar_bot).build()
+    try:
+        app = ApplicationBuilder().token(TOKEN).post_init(lambda app: setup_bot(app)).post_stop(cerrar_bot).build()
 
-            app.add_handler(CommandHandler("start", start))
-            app.add_handler(CommandHandler("stop", stop))
-            app.add_handler(CommandHandler("ultimo", ultimo))
-            app.add_handler(CommandHandler("tasa", tasa_actual))
-            app.add_handler(CommandHandler("donar", donar))
-            app.add_handler(CallbackQueryHandler(manejar_opciones))
-            app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_monto))
-            app.add_handler(CommandHandler("limpiar_tasas", limpiar_tasas))
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CommandHandler("stop", stop))
+        app.add_handler(CommandHandler("ultimo", ultimo))
+        app.add_handler(CommandHandler("tasa", tasa_actual))
+        app.add_handler(CommandHandler("donar", donar))
+        app.add_handler(CallbackQueryHandler(manejar_opciones))
+        app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_monto))
+        app.add_handler(CommandHandler("limpiar_tasas", limpiar_tasas))
 
-            app.add_error_handler(manejar_errores)
+        app.add_error_handler(manejar_errores)
 
-            app.run_polling()
-        except httpx.RemoteProtocolError as e:
-            logger.error(f"🔁 Error crítico: {e}. Reintentando en 60 segundos...")
-            asyncio.run(asyncio.sleep(60))
-        except Exception as e:
-            logger.critical(f"🔥 Error inesperado en el ciclo principal: {e}")
-            break
+        app.run_polling()
+    except (httpx.RemoteProtocolError, NetworkError, TelegramError) as e:
+        logger.error(f"🔁 Error de red o Telegram: {e}. Reintentando en 60 segundos...")
+        time.sleep(60)
+        main()
+    except Exception as e:
+        logger.critical(f"🔥 Error inesperado en el ciclo principal: {e}")
 
 if __name__ == "__main__":
     main()
