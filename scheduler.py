@@ -83,14 +83,15 @@ async def ejecutar_a_medianoche(app):
             datos = cargar_datos()
             hoy = hora_local().strftime("%d-%m-%Y")
             # Solo resetea si la fecha guardada es de un día anterior, para iniciar el nuevo día "limpio"
+            # Reseteo diario a medianoche
+            datos["tasa_notificada"] = False  # Siempre se reinicia
             if datos.get("fecha") != hoy:
                 datos["notificado"] = False
-                datos["tasa_notificada"] = False
-                # Opcional: podrías mantener la "fecha" como la del último dato conocido
-                # o también resetearla, dependiendo de tu necesidad de persistencia histórica.
-                # datos["fecha"] = hoy # <-- Si quieres que la fecha en datos.json sea siempre la del día actual al inicio
-                guardar_datos(datos)
-                logger.info("🔄 Banderas 'notificado' y 'tasa_notificada' reseteadas para el nuevo día.")
+                logger.info("🔄 Bandera 'notificado' reseteada (nueva fecha detectada).")
+
+            guardar_datos(datos)
+            logger.info("🔄 Bandera 'tasa_notificada' reiniciada para el nuevo día.")
+
             # --- FIN LÓGICA DE RESETEO ---
 
             await _obtener_tasa_diaria()() # Esto podría actualizar tasa_notificada a True si ya existe la tasa
