@@ -364,11 +364,12 @@ def _enviar_recordatorio(app):
     async def inner():
         hoy_para_comparacion = hora_local().strftime("%d-%m-%Y")
         datos = cargar_datos() # Cargar los datos más recientes
-
+        
+        fecha_valor = datos.get("usd", {}).get("fecha_valor", "")
         # Verificar si la "tasa del día" ya fue notificada (por la franja de monitoreo o la de medianoche)
         # o si ya se procesó la intervención de hoy.
         # Usamos 'tasa_notificada' para esto, que ahora será gestionada por 'manejar_fin_franja'.
-        if datos.get("tasa_notificada", False) and datos.get("fecha", "") == hoy_para_comparacion:
+        if datos.get("tasa_notificada", False) and fecha_valor == hoy_para_comparacion:
             logger.info(f"🚫 No se envía recordatorio a las 08:30 AM. La tasa del día {hoy_para_comparacion} ya fue notificada o procesada.")
             return
 

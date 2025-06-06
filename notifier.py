@@ -122,7 +122,7 @@ async def ultimo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             usd_texto = usd
 
         msg = (
-            f"📆 Fecha: {datos.get('fecha', '?')}\n"
+            f"📆 Fecha: {usd.get('fecha_valor', '')}\n"
             f"🔢 Nº Intervención: {datos.get('intervencion', '?')}\n"
             f"💵 Tipo de Cambio Bs./USD: {usd_texto}\n"
             f"💰 Tipo de Cambio Bs./EUR: {datos.get('monto', '?')}"
