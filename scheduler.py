@@ -154,7 +154,12 @@ async def ejecutar_alerta_tasa_diaria(app):
             hoy_str = ahora.strftime("%d-%m-%Y")
             estado = cargar_datos()
 
-            # Solo si no se ha notificado aún
+            # 🔁 Reparar inconsistencia si fecha anterior tiene tasa_notificada en True
+            if estado.get("fecha") != hoy_str:
+                estado["tasa_notificada"] = False
+                guardar_datos(estado)
+                logger.info("🔁 Reinicio forzado de 'tasa_notificada' por nueva fecha.")
+
             if not estado.get("tasa_notificada", False):
                 if ahora.time() >= time(7, 0):  # Ya pasaron las 07:00
                     datos = obtener_tasa_usd_firebase(hoy_str)
@@ -167,6 +172,7 @@ async def ejecutar_alerta_tasa_diaria(app):
                         try:
                             await notificar_a_todos(app.bot, mensaje)
                             estado["tasa_notificada"] = True
+                            estado["fecha"] = hoy_str  # opcional para consistencia
                             guardar_datos(estado)
                             logger.info("📨 Notificación de tasa diaria enviada con éxito (ejecución inmediata).")
                         except Exception as e:
@@ -174,12 +180,11 @@ async def ejecutar_alerta_tasa_diaria(app):
                     else:
                         logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy_str}.")
                 else:
-                    # Esperar hasta las 07:00
                     await esperar_hora_objetivo(time(7, 0))
                     continue
             else:
                 logger.info("🔕 La tasa diaria ya fue notificada.")
-            break  # Solo se ejecuta una vez por día
+            break
         except asyncio.CancelledError:
             logger.info("Tarea 'ejecutar_alerta_tasa_diaria' cancelada.")
             break
