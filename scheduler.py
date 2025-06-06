@@ -186,7 +186,7 @@ async def ejecutar_alerta_tasa_diaria(app):
 
 # --- Verificación de tasa pendiente (si se omitió a las 00:00) ---
 async def verificar_y_ejecutar_si_es_necesario(app):
-    intentos_fallidos = 0  # Contador opcional si quieres permitir varios intentos antes de detener
+    intentos_fallidos = 0
     while True:
         try:
             ahora = datetime.now(ZONA_VE)
@@ -194,22 +194,31 @@ async def verificar_y_ejecutar_si_es_necesario(app):
 
             if _tasa_ya_registrada(hoy):
                 logger.info("🛑 Tasa ya registrada correctamente. Finalizando verificación retroactiva.")
-                break  # Salimos del ciclo, no seguimos revisando
+                break
 
             logger.warning("⚠️ No se ejecutó correctamente la tasa a las 00:00 o no está registrada. Intentando ejecutarla ahora.")
+
             try:
                 await _obtener_tasa_diaria()()
+                
+                # 🩹 Corrección: asegurar tasa_notificada = False en Firebase tras guardar tasa
+                datos = cargar_datos()
+                datos["tasa_notificada"] = False
+                guardar_datos(datos)
+                logger.info("📤 Estado actualizado en Firebase con tasa_notificada=False (verificación retroactiva)")
+
                 intentos_fallidos += 1
+
             except Exception as e:
                 logger.error(f"❌ Error al ejecutar verificación retroactiva: {e}")
                 intentos_fallidos += 1
 
-            # Opcional: detiene si ha fallado muchas veces
             if intentos_fallidos >= 5:
                 logger.error("❌ Se alcanzó el límite de intentos fallidos. Deteniendo verificación retroactiva.")
                 break
 
-            await asyncio.sleep(300)  # Esperar 5 minutos
+            await asyncio.sleep(300)
+
         except asyncio.CancelledError:
             logger.info("Tarea 'verificar_y_ejecutar_si_es_necesario' cancelada.")
             break
