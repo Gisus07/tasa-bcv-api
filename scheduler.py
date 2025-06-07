@@ -16,9 +16,10 @@ def iniciar_scheduler(app):
     global tareas_programadas
     tareas_programadas.clear()
     tareas = [
-        ejecutar_a_medianoche(), ejecutar_a_las_8_30(app), ejecutar_a_las_10_00(),
+        ejecutar_a_medianoche(), ejecutar_a_las_8_30(app), 
+        # ejecutar_a_las_10_00(),
         ejecutar_el_dia_1_a_media_noche(app), ejecutar_cada_lunes_a_00_30(),
-        verificar_y_ejecutar_si_es_necesario(app), ejecutar_alerta_tasa_diaria(app),
+        verificar_y_ejecutar_si_es_necesario(), ejecutar_alerta_tasa_diaria(app),
         monitorear_entre_7y830(app),
     ]
     for coro in tareas:
@@ -54,9 +55,6 @@ async def ejecutar_a_medianoche():
 
 async def ejecutar_a_las_8_30(app):
     await ejecutar_en_hora("08:30", _enviar_recordatorio(app))
-
-async def ejecutar_a_las_10_00():
-    await ejecutar_en_hora("10:00", _obtener_tasa_diaria())
 
 async def ejecutar_en_hora(hora_str, funcion):
     while True:
@@ -96,46 +94,49 @@ async def _reset_diario_y_obtener_tasa():
 
 
 async def ejecutar_alerta_tasa_diaria(app):
-    while True:
-        try:
-            ahora = hora_local()
-            hoy_str = ahora.strftime("%d-%m-%Y")
-            estado = cargar_datos()
+    try:
+        ahora = hora_local()
+        hoy_str = ahora.strftime("%d-%m-%Y")
+        estado = cargar_datos()
 
-            if estado.get("fecha") != hoy_str:
-                estado["tasa_notificada"] = False
+        # Reiniciar bandera si cambió la fecha
+        if estado.get("fecha") != hoy_str:
+            estado["tasa_notificada"] = False
+            guardar_datos(estado)
+            logger.info("🔁 Reinicio forzado de 'tasa_notificada' por nueva fecha.")
+
+        # Verificar si ya se notificó o aún no es hora
+        if estado.get("tasa_notificada"):
+            logger.info("🔕 La tasa diaria ya fue notificada.")
+            return
+
+        if ahora.time() < time(7, 0):
+            await esperar_hora_objetivo(time(7, 0))
+
+        # Intentar obtener y notificar la tasa
+        datos = obtener_tasa_usd_firebase(hoy_str)
+        if datos:
+            mensaje = (
+                f"💵 Tasa oficial del día {hoy_str}:\n"
+                f"• USD: {datos.get('valor', '?')} Bs.\n"
+                f"• EUR: {datos.get('valorEur', '?')} Bs."
+            )
+            try:
+                await notificar_a_todos(app.bot, mensaje)
+                estado.update({"tasa_notificada": True, "fecha": hoy_str})
                 guardar_datos(estado)
-                logger.info("🔁 Reinicio forzado de 'tasa_notificada' por nueva fecha.")
+                logger.info("📨 Notificación de tasa diaria enviada con éxito.")
+            except Exception as e:
+                logger.error(f"❌ Error al enviar la tasa del día: {e}")
+        else:
+            logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy_str}.")
 
-            if estado.get("tasa_notificada") is False and ahora.time() >= time(7, 0):
-                datos = obtener_tasa_usd_firebase(hoy_str)
-                if datos:
-                    mensaje = (
-                        f"💵 Tasa oficial del día {hoy_str}:\n"
-                        f"• USD: {datos.get('valor', '?')} Bs.\n"
-                        f"• EUR: {datos.get('valorEur', '?')} Bs."
-                    )
-                    try:
-                        await notificar_a_todos(app.bot, mensaje)
-                        estado.update({"tasa_notificada": True, "fecha": hoy_str})
-                        guardar_datos(estado)
-                        logger.info("📨 Notificación de tasa diaria enviada con éxito.")
-                    except Exception as e:
-                        logger.error(f"❌ Error al enviar la tasa del día: {e}")
-                else:
-                    logger.warning(f"⚠️ No hay datos de tasa para hoy {hoy_str}.")
-                break
-            elif estado.get("tasa_notificada"):
-                logger.info("🔕 La tasa diaria ya fue notificada.")
-                break
-            else:
-                await esperar_hora_objetivo(time(7, 0))
-        except asyncio.CancelledError:
-            logger.info("Tarea 'ejecutar_alerta_tasa_diaria' cancelada.")
-            break
+    except asyncio.CancelledError:
+        logger.info("Tarea 'ejecutar_alerta_tasa_diaria' cancelada.")
+
 
 # --- Verificación de tasa pendiente (si se omitió a las 00:00) ---
-async def verificar_y_ejecutar_si_es_necesario(app):
+async def verificar_y_ejecutar_si_es_necesario():
     intentos = 0
     while intentos < 5:
         try:
@@ -145,7 +146,7 @@ async def verificar_y_ejecutar_si_es_necesario(app):
                 break
 
             logger.warning("⚠️ Tasa del día no registrada. Intentando ejecución manual...")
-            await _obtener_tasa_diaria(app)()
+            await _obtener_tasa_diaria()()
             datos = cargar_datos()
             datos["tasa_notificada"] = False
             guardar_datos(datos)
@@ -295,8 +296,10 @@ def _limpieza_semanal():
 def _obtener_tasa_diaria():
     async def inner():
         hoy = datetime.now(ZONA_VE).date()
+
         try:
             resultado = obtener_tasa_usd_bcv_checker()
+
             if not isinstance(resultado, dict):
                 logger.warning("⛔ Resultado inválido desde el BCV.")
                 return
@@ -304,47 +307,60 @@ def _obtener_tasa_diaria():
             fecha_valor_str = resultado["fecha_valor"]
             fecha_valor = datetime.strptime(fecha_valor_str, "%d-%m-%Y").date()
 
+            # Guardar tasa si no existe
             if not obtener_tasa_usd_firebase(fecha_valor_str):
                 guardar_tasa_usd_firebase(fecha_valor_str, {
                     "fecha_valor": fecha_valor_str,
                     "valor": resultado["valor"],
                     "valorEur": resultado["valorEur"]
                 })
-                logger.info(f"✅ Tasa oficial guardada para {fecha_valor_str}: {resultado['valor']} USD, {resultado['valorEur']} EUR")
+                logger.info(
+                    f"✅ Tasa oficial guardada para {fecha_valor_str}: "
+                    f"{resultado['valor']} USD, {resultado['valorEur']} EUR"
+                )
             else:
                 logger.info(f"✅ Tasa ya registrada para {fecha_valor_str}")
 
+            # Si la fecha publicada es futura, propagar la última tasa conocida
             if fecha_valor > hoy:
-                tasa_anterior = None
-                for delta in range(1, 8):
-                    fecha_anterior = hoy - timedelta(days=delta)
-                    fecha_anterior_str = fecha_anterior.strftime("%d-%m-%Y")
-                    anterior_data = obtener_tasa_usd_firebase(fecha_anterior_str)
-                    if isinstance(anterior_data, dict) and "valor" in anterior_data:
-                        tasa_anterior = {
-                            "valor": anterior_data["valor"],
-                            "valorEur": anterior_data.get("valorEur", "No disponible"),
-                            "fecha_valor": fecha_anterior_str
-                        }
-                        break
-
+                tasa_anterior = _buscar_tasa_anterior(hoy)
                 if not tasa_anterior:
                     logger.warning("⚠️ No se encontró una tasa anterior para propagar.")
                     return
 
-                dias_intermedios = (fecha_valor - hoy).days
-                for i in range(dias_intermedios):
-                    fecha_intermedia = hoy + timedelta(days=i)
-                    fecha_intermedia_str = fecha_intermedia.strftime("%d-%m-%Y")
-                    if not obtener_tasa_usd_firebase(fecha_intermedia_str):
-                        guardar_tasa_usd_firebase(fecha_intermedia_str, {
-                            "fecha_valor": tasa_anterior["fecha_valor"],
-                            "valor": tasa_anterior["valor"],
-                            "valorEur": tasa_anterior["valorEur"]
-                        })
-                        logger.info(f"🕒 Tasa propagada para {fecha_intermedia_str} usando la del {tasa_anterior['fecha_valor']}")
+                _propagar_tasa(hoy, fecha_valor, tasa_anterior)
 
         except Exception as e:
             logger.error(f"❌ Error en obtener_tasa_diaria: {e}")
 
     return inner
+
+# Función auxiliar para buscar tasa anterior
+def _buscar_tasa_anterior(hoy):
+    for delta in range(1, 8):
+        fecha_anterior = hoy - timedelta(days=delta)
+        fecha_anterior_str = fecha_anterior.strftime("%d-%m-%Y")
+        datos = obtener_tasa_usd_firebase(fecha_anterior_str)
+        if isinstance(datos, dict) and "valor" in datos:
+            return {
+                "fecha_valor": fecha_anterior_str,
+                "valor": datos["valor"],
+                "valorEur": datos.get("valorEur", "No disponible")
+            }
+    return None
+
+# Función auxiliar para propagar tasa anterior a días intermedios
+def _propagar_tasa(inicio, fin, tasa):
+    dias_intermedios = (fin - inicio).days
+    for i in range(dias_intermedios):
+        fecha = inicio + timedelta(days=i)
+        fecha_str = fecha.strftime("%d-%m-%Y")
+        if not obtener_tasa_usd_firebase(fecha_str):
+            guardar_tasa_usd_firebase(fecha_str, {
+                "fecha_valor": tasa["fecha_valor"],
+                "valor": tasa["valor"],
+                "valorEur": tasa["valorEur"]
+            })
+            logger.info(
+                f"🕒 Tasa propagada para {fecha_str} usando la del {tasa['fecha_valor']}"
+            )

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# --- Constantes cargadas desde .env ---
 PAGO_MOVIL = {
     "banco": os.getenv("PAGOMOVIL_BANCO"),
     "telefono": os.getenv("PAGOMOVIL_TELEFONO"),
@@ -29,39 +30,57 @@ BINANCE_CRYPTOS = {
 PAYPAL_CORREO = os.getenv("PAYPAL_CORREO")
 WALLY_USUARIO = os.getenv("WALLY_USUARIO")
 
-async def donar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
+# --- Helpers reutilizables ---
+
+def obtener_menu_principal():
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("💸 Pago Móvil", callback_data="pago_movil")],
         [InlineKeyboardButton("🪙 Binance", callback_data="binance")],
         [InlineKeyboardButton("🧾 PayPal", callback_data="paypal")],
         [InlineKeyboardButton("💼 Wally", callback_data="wally")]
-    ]
+    ])
+
+def obtener_tasa_actual():
+    fecha = datetime.now().strftime("%d-%m-%Y")
+    data = obtener_tasa_usd_firebase(fecha)
+    if isinstance(data, dict) and "valor" in data:
+        return data["valor"]
+    return None
+
+def generar_mensaje_pago_movil(bs):
+    return (
+        f"💳 *Pago Móvil*\n\n"
+        f"Banco: {PAGO_MOVIL['banco']}\n"
+        f"Teléfono: {PAGO_MOVIL['telefono']}\n"
+        f"C.I.: {PAGO_MOVIL['ci']}\n"
+        f"Monto: Bs. {bs:,.2f}"
+    )
+
+def boton_volver():
+    return [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
+
+# --- Comando /donar ---
+
+async def donar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🙏 ¿Cómo deseas donar?\nElige un método de pago:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=obtener_menu_principal()
     )
+
+# --- Manejo de opciones de donación ---
 
 async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
 
-    async def mostrar_menu_principal():
-        keyboard = [
-            [InlineKeyboardButton("💸 Pago Móvil", callback_data="pago_movil")],
-            [InlineKeyboardButton("🪙 Binance", callback_data="binance")],
-            [InlineKeyboardButton("🧾 PayPal", callback_data="paypal")],
-            [InlineKeyboardButton("💼 Wally", callback_data="wally")]
-        ]
-        await query.edit_message_text("🙏 ¿Cómo deseas donar?\nElige un método de pago:", reply_markup=InlineKeyboardMarkup(keyboard))
-
     async def mostrar_montos_pago_movil():
         keyboard = [
             [InlineKeyboardButton("1$", callback_data="usd_1"),
-            InlineKeyboardButton("5$", callback_data="usd_5"),
-            InlineKeyboardButton("10$", callback_data="usd_10")],
+             InlineKeyboardButton("5$", callback_data="usd_5"),
+             InlineKeyboardButton("10$", callback_data="usd_10")],
             [InlineKeyboardButton("💬 Otro monto", callback_data="monto_personalizado")],
-            [InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]
+            boton_volver()[0]
         ]
         await query.edit_message_text("💸 ¿Cuánto deseas donar en USD?", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -73,7 +92,7 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("BTC", callback_data="binance_btc")],
             [InlineKeyboardButton("ETH", callback_data="binance_eth")],
             [InlineKeyboardButton("BNB", callback_data="binance_bnb")],
-            [InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]
+            boton_volver()[0]
         ]
         await query.edit_message_text("🪙 ¿Con qué cripto deseas donar en Binance?", reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -87,37 +106,23 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             mensaje += f"Red: `{info['red']}`\n"
         if "tag" in info:
             mensaje += f"Tag/Memo: `{info['tag']}`"
-        keyboard = [[InlineKeyboardButton("⬅️ Otra cripto", callback_data="binance")]]
         await query.edit_message_text(
             mensaje.strip(),
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup([boton_volver()[0]])
         )
 
     async def mostrar_info_pago_movil(usd):
-        fecha = datetime.now().strftime("%d-%m-%Y")
-        data = obtener_tasa_usd_firebase(fecha)
-        if not isinstance(data, dict) or "valor" not in data:
-            await query.edit_message_text("❌ No se pudo obtener la tasa del día.")
-            return
-        tasa = data["valor"]
-
+        tasa = obtener_tasa_actual()
         if not tasa:
             await query.edit_message_text("❌ No se pudo obtener la tasa del día.")
             return
         bs = usd * tasa
-        mensaje = (
-            f"💳 *Pago Móvil*\n\n"
-            f"Banco: {PAGO_MOVIL['banco']}\n"
-            f"Teléfono: {PAGO_MOVIL['telefono']}\n"
-            f"C.I.: {PAGO_MOVIL['ci']}\n"
-            f"Monto: Bs. {bs:,.2f}"
-        )
-        keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
+        mensaje = generar_mensaje_pago_movil(bs)
         await query.edit_message_text(
             mensaje,
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard)
+            reply_markup=InlineKeyboardMarkup(boton_volver())
         )
 
     match data:
@@ -132,20 +137,17 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await mostrar_info_binance(moneda)
 
         case "paypal":
-            keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
             await query.edit_message_text(
                 f"🧾 *PayPal*\nCorreo: `{PAYPAL_CORREO}`",
                 parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard)
+                reply_markup=InlineKeyboardMarkup(boton_volver())
             )
 
-
         case "wally":
-            keyboard = [[InlineKeyboardButton("⬅️ Volver", callback_data="volver_menu")]]
             await query.edit_message_text(
                 f"💼 *Wally*\nTeléfono: `{WALLY_USUARIO}`",
                 parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard)
+                reply_markup=InlineKeyboardMarkup(boton_volver())
             )
 
         case _ if data.startswith("usd_"):
@@ -157,28 +159,21 @@ async def manejar_opciones(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data["esperando_monto"] = True
 
         case "volver_menu":
-            await mostrar_menu_principal()
+            await query.edit_message_text("🙏 ¿Cómo deseas donar?\nElige un método de pago:", reply_markup=obtener_menu_principal())
+
+# --- Manejar monto escrito por el usuario ---
 
 async def recibir_monto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("esperando_monto"):
         try:
             usd = float(update.message.text.replace(",", "."))
-            fecha = datetime.now().strftime("%d-%m-%Y")
-            data = obtener_tasa_usd_firebase(fecha)
-            if not isinstance(data, dict) or "valor" not in data:
-                await update.message.reply_text("❌ No se pudo obtener la tasa del día.")
-                return
-            tasa = data["valor"]
+            tasa = obtener_tasa_actual()
             if not tasa:
                 await update.message.reply_text("❌ No se pudo obtener la tasa del día.")
                 return
             bs = usd * tasa
             await update.message.reply_text(
-                f"💳 *Pago Móvil*\n\n"
-                f"Banco: {PAGO_MOVIL['banco']}\n"
-                f"Teléfono: {PAGO_MOVIL['telefono']}\n"
-                f"C.I.: {PAGO_MOVIL['ci']}\n"
-                f"Monto: Bs. {bs:,.2f}",
+                generar_mensaje_pago_movil(bs),
                 parse_mode="Markdown"
             )
         except ValueError:

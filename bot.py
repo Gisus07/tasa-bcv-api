@@ -1,3 +1,4 @@
+import time
 from telegram import BotCommand, BotCommandScopeDefault, BotCommandScopeChat
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 from telegram.error import NetworkError, TelegramError
@@ -16,7 +17,6 @@ from scheduler import tareas_programadas
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
-# TOKEN = os.getenv("TEST_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
 
 async def setup_bot(app):
@@ -35,8 +35,6 @@ async def setup_bot(app):
     await app.bot.set_my_commands(comandos_admin, scope=BotCommandScopeChat(chat_id=ADMIN_ID))
 
     try:
-        # mensaje_inicio = "✅ El bot vuelve a estar operativo.\n"
-        # await notificar_a_todos(app.bot, mensaje_inicio)
         logger.info("📢 Notificación de encendido enviada correctamente")
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación de encendido: {e}")
@@ -47,28 +45,21 @@ async def setup_bot(app):
 async def cerrar_bot(app):
     logger.info("⏹️ Cerrando tareas...")
     
-    # 1. Notificar apagado (opcional, si quieres que los usuarios lo sepan)
     try:
-        # mensaje = "⚠️ El bot ha sido detenido temporalmente por mantenimiento. Pronto volverá a estar disponible."
-        # await notificar_a_todos(app.bot, mensaje)
         logger.info("📴 Notificación de apagado enviada correctamente")
     except Exception as e:
         logger.error(f"❌ Error al enviar notificación de apagado: {e}")
     
-    # 2. Cancelar todas las tareas programadas
     if tareas_programadas:
         for tarea in tareas_programadas:
-            if not tarea.done(): # Solo intenta cancelar si la tarea no ha terminado
+            if not tarea.done():
                 tarea.cancel()
         
-        # 3. Esperar a que las tareas se cancelen (o finalicen si ya estaban por hacerlo)
-        # Esto es crucial. return_exceptions=True evita que una excepción en una tarea falle todo el gather.
-        # Capturamos las excepciones de cancelación que son esperadas.
         resultados = await asyncio.gather(*tareas_programadas, return_exceptions=True)
         for res in resultados:
             if isinstance(res, asyncio.CancelledError):
                 logger.debug("✅ Tarea cancelada exitosamente.")
-            elif res is not None: # Si hay otra excepción, la registramos
+            elif res is not None:
                 logger.error(f"❌ Excepción inesperada al cerrar tarea: {res}")
     else:
         logger.info("ℹ️ No hay tareas programadas para cerrar.")
