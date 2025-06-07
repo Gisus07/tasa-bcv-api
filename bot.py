@@ -7,13 +7,12 @@ from subs_manager import start, stop
 from notifier import ultimo, tasa_actual
 from scheduler import iniciar_scheduler
 from log_manager import logger
-from limpiar_tasas import limpiar_tasas
-from eliminar_bloqueados import eliminar_bloqueados
 from dotenv import load_dotenv
 import os
 import asyncio
 import httpx
 from scheduler import tareas_programadas
+from admin_commands import ping, eliminar_bloqueados, limpiar_tasas, ver_log
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -28,8 +27,10 @@ async def setup_bot(app):
         BotCommand("donar", "Mostrar métodos de donación")
     ]
     comandos_admin = comandos_publicos + [
-        BotCommand("eliminar_bloqueados", "(Admin) Eliminar usuarios que bloquearon al bot"),
-        BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas")
+    BotCommand("eliminar_bloqueados", "(Admin) Eliminar usuarios que bloquearon al bot"),
+    BotCommand("limpiar_tasas", "(Admin) Limpiar tasas antiguas"),
+    BotCommand("ping", "(Admin) Verificar si el bot está activo"),
+    BotCommand("log", "(Admin) Ver últimas líneas del log")
     ]
     await app.bot.set_my_commands(comandos_publicos, scope=BotCommandScopeDefault())
     await app.bot.set_my_commands(comandos_admin, scope=BotCommandScopeChat(chat_id=ADMIN_ID))
@@ -88,6 +89,8 @@ def main():
         app.add_handler(CallbackQueryHandler(manejar_opciones))
         app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, recibir_monto))
         app.add_handler(CommandHandler("limpiar_tasas", limpiar_tasas))
+        app.add_handler(CommandHandler("ping", ping))
+        app.add_handler(CommandHandler("log", ver_log))
 
         app.add_error_handler(manejar_errores)
 

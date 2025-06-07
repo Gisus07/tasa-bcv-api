@@ -1,3 +1,4 @@
+import time
 import pytz
 import asyncio
 from telegram import Update
@@ -175,15 +176,15 @@ async def notificar_a_todos(bot, mensaje: str):
         except Exception as e:
             logger.error(f"❌ Error inesperado al notificar a {uid}: {e}")
 
+    inicio = time.perf_counter()  # ⏱️ Marca inicio
+
     try:
         await asyncio.gather(*(notificar(uid) for uid in usuarios))
-        logger.info(f"✅ Notificación enviada a {len(usuarios)} usuarios.")
+        fin = time.perf_counter()  # ⏱️ Marca fin
+        duracion = fin - inicio
+        logger.info(f"✅ Notificación enviada a {len(usuarios)} usuarios en {duracion:.2f} segundos.")
     except Exception as e:
-        logger.error(f"❌ Error en la ejecución paralela de notificaciones: {e}")
-
-async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("✅ Entró al comando /ping")
-    await update.message.reply_text("🏓 Pong")
+        logger.error(f"❌ Error en notificación paralela: {e}")
 
 async def enviar_recordatorio_donacion(bot):
     try:
