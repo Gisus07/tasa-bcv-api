@@ -1,6 +1,7 @@
 import asyncio
 import pytz
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta
+import time
 from notifier import (
     notificar_a_todos, enviar_recordatorio_donacion, generar_firma,
     hora_local, cargar_datos, guardar_datos, fecha_destino_tasa
@@ -60,7 +61,10 @@ async def ejecutar_en_hora(hora_str, funcion):
     while True:
         try:
             await esperar_hora_objetivo(datetime.strptime(hora_str, "%H:%M").time())
+            inicio = time.perf_counter()
             await funcion()
+            fin = time.perf_counter()
+            logger.info(f"⏱️ Tarea programada en {hora_str} ejecutada en {fin - inicio:.3f} segundos.")
             await asyncio.sleep(60)
         except asyncio.CancelledError:
             logger.info(f"Tarea ejecutada en {hora_str} cancelada.")
@@ -76,11 +80,15 @@ async def ejecutar_en_fecha(condicion, funcion):
     while True:
         try:
             await esperar_proxima_fecha_objetivo(condicion)
+            inicio = time.perf_counter()
             await funcion()
+            fin = time.perf_counter()
+            logger.info(f"📆 Tarea programada por fecha ejecutada en {fin - inicio:.3f} segundos.")
             await asyncio.sleep(60)
         except asyncio.CancelledError:
             logger.info("Tarea ejecutada por condición de fecha cancelada.")
             break
+
 
 async def _reset_diario_y_obtener_tasa():
     datos = cargar_datos()

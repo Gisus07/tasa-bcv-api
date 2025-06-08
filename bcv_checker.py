@@ -1,7 +1,7 @@
 import re
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+from datetime import datetime
 from firebase_manager import guardar_tasa_usd_firebase, obtener_tasa_usd_firebase
 from log_manager import logger
 import urllib3
