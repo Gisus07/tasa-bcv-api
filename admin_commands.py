@@ -1,6 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from telegram.error import Forbidden
+from telegram.constants import ChatAction
+from telegram.helpers import escape_markdown
 from firebase_manager import (
     obtener_usuarios_firebase, guardar_usuarios_firebase,
     eliminar_tasas_anteriores
@@ -20,16 +22,15 @@ MENSAJE_NO_AUTORIZADO = "⛔ No tienes permisos para usar este comando."
 # --- /ping ---
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text("🚫 Este comando está reservado para el administrador.")
-        return
+        return  # ignorar totalmente si no es admin
 
     logger.info("✅ Comando /ping ejecutado correctamente por el admin.")
-    await update.message.reply_text("🏓 Pong")
+    await context.bot.send_message(chat_id=ADMIN_ID, text="🏓 Pong")
+
 
 # --- /eliminar_bloqueados ---
 async def eliminar_bloqueados(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(MENSAJE_NO_AUTORIZADO)
         return
 
     usuarios = obtener_usuarios_firebase()
@@ -38,7 +39,7 @@ async def eliminar_bloqueados(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     async def verificar_usuario(uid):
         try:
-            await context.bot.send_message(chat_id=uid, text="🔍 Verificación de actividad.")
+            await context.bot.send_chat_action(chat_id=uid, action=ChatAction.TYPING)
             return uid, True
         except Forbidden:
             logger.warning(f"🚫 Usuario bloqueó al bot: {uid}")
@@ -70,27 +71,22 @@ async def eliminar_bloqueados(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"👥 Usuarios activos: {len(activos)}\n"
         f"🚫 Usuarios eliminados: {len(eliminados)}"
     )
-    await update.message.reply_text(mensaje)
+    await context.bot.send_message(chat_id=ADMIN_ID, text=mensaje)
 
 # --- /limpiar_tasas ---
 async def limpiar_tasas(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(MENSAJE_NO_AUTORIZADO)
         return
 
     try:
         eliminadas = eliminar_tasas_anteriores()
-        await update.message.reply_text(f"🧹 Se eliminaron {eliminadas} tasas antiguas correctamente.")
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"🧹 Se eliminaron {eliminadas} tasas antiguas correctamente.")
     except Exception as e:
-        await update.message.reply_text(f"❌ Error al eliminar tasas: {e}")
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"❌ Error al eliminar tasas: {e}")
 
 # --- /log ---
-from telegram.constants import ChatAction
-from telegram.helpers import escape_markdown
-
 async def ver_log(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
-        await update.message.reply_text(MENSAJE_NO_AUTORIZADO)
         return
 
     ruta_log = "logs/bot.log"
@@ -98,8 +94,8 @@ async def ver_log(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if argumento.lower() == "archivo":
-            await update.message.chat.send_action(action=ChatAction.UPLOAD_DOCUMENT)
-            await update.message.reply_document(document=open(ruta_log, "rb"), filename="bot.log")
+            await context.bot.send_chat_action(chat_id=ADMIN_ID, action=ChatAction.UPLOAD_DOCUMENT)
+            await context.bot.send_document(chat_id=ADMIN_ID, document=open(ruta_log, "rb"), filename="bot.log")
             return
 
         with open(ruta_log, "r", encoding="utf-8") as f:
@@ -108,17 +104,16 @@ async def ver_log(update: Update, context: ContextTypes.DEFAULT_TYPE):
             texto = "".join(ultimas_lineas).strip()
 
         if not texto:
-            await update.message.reply_text("📂 El archivo de log está vacío.")
+            await context.bot.send_message(chat_id=ADMIN_ID, text="📂 El archivo de log está vacío.")
             return
 
         if len(texto) > 4000:
             texto = texto[-4000:]
 
-        # Escapar caracteres especiales para Markdown
         texto = escape_markdown(texto, version=2)
-        await update.message.reply_text(f"📄 Últimas líneas del log:\n\n```{texto}```", parse_mode="MarkdownV2")
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"📄 Últimas líneas del log:\n\n```{texto}```", parse_mode="MarkdownV2")
 
     except FileNotFoundError:
-        await update.message.reply_text("❌ No se encontró el archivo de log.")
+        await context.bot.send_message(chat_id=ADMIN_ID, text="❌ No se encontró el archivo de log.")
     except Exception as e:
-        await update.message.reply_text(f"❌ Error al leer el log: {e}")
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"❌ Error al leer el log: {e}")

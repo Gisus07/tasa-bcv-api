@@ -1,7 +1,7 @@
 import asyncio
 import pytz
-from datetime import datetime, timedelta
-import time
+from datetime import datetime, timedelta, time as dt_time
+import time  # para perf_counter y sleep
 from notifier import (
     notificar_a_todos, enviar_recordatorio_donacion, generar_firma,
     hora_local, cargar_datos, guardar_datos, fecha_destino_tasa
@@ -16,15 +16,23 @@ tareas_programadas = []
 def iniciar_scheduler(app):
     global tareas_programadas
     tareas_programadas.clear()
+
+    # Tareas que deben ejecutarse de inmediato
+    asyncio.create_task(verificar_y_ejecutar_si_es_necesario())
+    asyncio.create_task(ejecutar_alerta_tasa_diaria(app))
+    asyncio.create_task(monitorear_entre_7y830(app))  # comienza el bucle desde el arranque
+
+    # Tareas programadas para horarios específicos o fechas
     tareas = [
-        ejecutar_a_medianoche(), ejecutar_a_las_8_30(app), 
-        # ejecutar_a_las_10_00(),
-        ejecutar_el_dia_1_a_media_noche(app), ejecutar_cada_lunes_a_00_30(),
-        verificar_y_ejecutar_si_es_necesario(), ejecutar_alerta_tasa_diaria(app),
-        monitorear_entre_7y830(app),
+        ejecutar_a_medianoche(),
+        ejecutar_a_las_8_30(app),
+        ejecutar_el_dia_1_a_media_noche(app),
+        ejecutar_cada_lunes_a_00_30(),
     ]
+
     for coro in tareas:
         tareas_programadas.append(asyncio.create_task(coro))
+
     logger.info("🗓️ Scheduler manual iniciado")
 
 # --- FUNCIONES ASÍNCRONAS DE CONTROL DE TIEMPO ---
@@ -118,8 +126,8 @@ async def ejecutar_alerta_tasa_diaria(app):
             logger.info("🔕 La tasa diaria ya fue notificada.")
             return
 
-        if ahora.time() < time(7, 0):
-            await esperar_hora_objetivo(time(7, 0))
+        if ahora.time() < dt_time(7, 0):
+            await esperar_hora_objetivo(dt_time(7, 0))
 
         # Intentar obtener y notificar la tasa
         datos = obtener_tasa_usd_firebase(hoy_str)
@@ -170,24 +178,36 @@ async def verificar_y_ejecutar_si_es_necesario():
             break
 
 async def monitorear_entre_7y830(app):
+    logger.info("🟢 Iniciando monitoreo_entre_7y830()")  # Log importante
+
     ha_reportado_espera = False
     while True:
         ahora = hora_local()
         hora_actual = ahora.time()
-        inicio, fin = time(7, 0), time(8, 30)
+        inicio, fin = dt_time(7, 0), dt_time(8, 30)
         hoy = ahora.strftime("%d-%m-%Y")
 
+        logger.debug(f"🕓 Hora actual: {hora_actual}")
+
         if inicio <= hora_actual <= fin:
+            logger.info("🔍 Dentro de la franja horaria 7:00-8:30")
             ha_reportado_espera = False
             await verificar_durante_franja(app, hoy)
             await asyncio.sleep(120)
+
         elif hora_actual > fin:
-            await manejar_fin_franja()
+            logger.info("⏰ Fuera de franja (después de 8:30 AM)")
+            datos = cargar_datos()
+            if not datos.get("notificado") or datos.get("fecha") != hoy:
+                logger.info("🔁 Ejecutando verificación tardía")
+                await verificar_durante_franja(app, hoy)
+                await manejar_fin_franja()
             siguiente_inicio = ahora.replace(hour=7, minute=0, second=0, microsecond=0) + timedelta(days=1)
             await asyncio.sleep((siguiente_inicio - ahora).total_seconds())
+
         else:
             if not ha_reportado_espera:
-                logger.info("🌅 Aún no es hora (antes de las 7:00 AM). Esperando...")
+                logger.info("🌄 Aún no son las 7:00 AM. Esperando...")
                 ha_reportado_espera = True
             await asyncio.sleep(1800)
 
@@ -200,7 +220,7 @@ async def verificar_durante_franja(app, hoy):
     logger.info("⏱️ Verificando intervención cambiaria BCV...")
     nueva = obtener_ultima_intervencion()
 
-    if nueva and nueva["fecha"] != datos.get("fecha") and nueva["fecha"] == hoy:
+    if nueva and nueva["fecha"] == hoy and (nueva["fecha"] != datos.get("fecha") or not datos.get("notificado")):
         logger.info("🎉 ¡Intervención detectada!")
         nueva["notificado"] = True
         guardar_datos(nueva)

@@ -6,7 +6,8 @@ from telegram.ext import ContextTypes
 from telegram.error import Forbidden, TelegramError
 from firebase_manager import obtener_usuarios_firebase,obtener_intervencion_firebase, guardar_intervencion_firebase, obtener_tasa_usd_firebase
 from bcv_checker import obtener_ultima_intervencion, obtener_tasa_usd_bcv_checker
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
+import time
 from log_manager import logger
 from firebase_manager import guardar_tasa_usd_firebase, obtener_intervencion_firebase, eliminar_usuario_firebase
 
