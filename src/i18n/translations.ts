@@ -118,6 +118,36 @@ export const ES_TO_EN: Record<string, string> = {
     'Returns metadata for the key authenticating the call: visible prefix, name, email, tier, creation date, last used timestamp, and request count.',
   'Información de la API key': 'API key information',
   'Falta API key o es inválida': 'Missing or invalid API key',
+
+  // ===== admin keys list / revoke =====
+  'Listar todas las API keys (activas y revocadas)':
+    'List every API key (active and revoked)',
+  'Devuelve metadata de todas las keys ordenadas por fecha de creación descendente. Limitado a 100 por respuesta. No incluye la key en texto plano — solo el prefijo visible y el resto de campos.':
+    'Returns metadata for every key ordered by creation date descending. Capped at 100 per response. Does not include the plaintext key — only the visible prefix and the other fields.',
+  'Listado de keys': 'Keys listing',
+  'Revocar una API key por ID': 'Revoke an API key by ID',
+  'Soft-delete: marca la key como revocada (`revoked_at = now()`). La key revocada deja de autenticar de inmediato — siguientes requests con ella devuelven 401. Operación idempotente: revocar una key ya revocada responde 404 NOT_FOUND.':
+    'Soft-delete: marks the key as revoked (`revoked_at = now()`). The revoked key stops authenticating immediately — subsequent requests with it return 401. Idempotent: revoking an already-revoked key returns 404 NOT_FOUND.',
+  'Key revocada': 'Key revoked',
+  'Key no encontrada o ya estaba revocada': 'Key not found or already revoked',
+
+  // ===== auto-revoke =====
+  'Revocar mi propia API key': 'Revoke my own API key',
+  'El dueño de la key se auto-revoca. La key deja de funcionar de inmediato — siguientes requests con ella devuelven 401. Operación idempotente y final: una vez revocada, no se puede reactivar; hay que registrar una nueva.':
+    'The key owner self-revokes. The key stops working immediately — subsequent requests with it return 401. Idempotent and final: once revoked it cannot be reactivated; a new one must be registered.',
+
+  // ===== usage histogram =====
+  'Histograma diario de uso de mi API key': 'Daily usage histogram for my API key',
+  'Devuelve el conteo de requests por día en la ventana solicitada (default 30 días). Los días sin requests no aparecen — el cliente debe asumir 0 para los faltantes si necesita una serie completa. Ideal para gráficas de uso semanales o mensuales.':
+    'Returns the request count per day within the requested window (default 30 days). Days with no requests are absent — clients should assume 0 for missing ones if a full series is needed. Ideal for weekly or monthly usage charts.',
+  'Histograma diario': 'Daily histogram',
+  'Días hacia atrás a incluir (1-365). Default 30.':
+    'Days back to include (1-365). Default 30.',
+  'Ventana solicitada': 'Window requested',
+  'Suma de requests en la ventana (no incluye días sin uso, esos no se almacenan).':
+    'Sum of requests in the window (days without traffic are not stored).',
+  'Días con uso, ordenados de más reciente a más antiguo. Días sin uso no aparecen.':
+    'Days with traffic, ordered most recent first. Days without traffic are absent.',
 };
 
 /**

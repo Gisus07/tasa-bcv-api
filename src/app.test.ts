@@ -39,8 +39,11 @@ describe('createApp', () => {
       '/v1/rates/{date}',
       '/v1/last-updated',
       '/v1/admin/trigger-ingest',
+      '/v1/admin/keys',
+      '/v1/admin/keys/{id}/revoke',
       '/v1/keys/register',
       '/v1/keys/me',
+      '/v1/keys/me/usage',
     ];
     for (const p of expectedPaths) {
       expect(spec.paths[p]).toBeDefined();

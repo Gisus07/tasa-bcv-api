@@ -1,11 +1,13 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { db } from '../../db/client.js';
 import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { UnauthorizedError } from '../../lib/errors.js';
 import { ErrorResponse } from '../../schemas/common.js';
-import { ApiKeyInfo } from '../../schemas/rates.js';
+import { ApiKeyInfo, RevokeKeyResponse } from '../../schemas/rates.js';
+import { revokeKey } from '../../services/apiKeys.service.js';
 
-const route = createRoute({
+const getRoute = createRoute({
   method: 'get',
   path: '/keys/me',
   tags: ['keys'],
@@ -41,11 +43,52 @@ const route = createRoute({
   },
 });
 
+const deleteRoute = createRoute({
+  method: 'delete',
+  path: '/keys/me',
+  tags: ['keys'],
+  summary: 'Revocar mi propia API key',
+  description:
+    'El dueño de la key se auto-revoca. La key deja de funcionar de inmediato — siguientes requests con ella devuelven 401. Operación idempotente y final: una vez revocada, no se puede reactivar; hay que registrar una nueva.',
+  security: [{ bearerAuth: [] }],
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/keys/me', method: 'POST', bearer: true }).map(
+      (s) => ({
+        ...s,
+        // codeSamplesFor doesn't have a DELETE preset; tweak the curl manually.
+        source: s.source.replace('-X POST', '-X DELETE').replace(/POST/g, 'DELETE'),
+      }),
+    ),
+  } as Record<string, unknown>),
+  responses: {
+    200: {
+      description: 'Key revocada',
+      content: {
+        'application/json': {
+          schema: RevokeKeyResponse,
+          example: {
+            revoked: true,
+            id: 1,
+            message: 'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
+          },
+        },
+      },
+    },
+    401: {
+      description: 'Falta API key o es inválida',
+      content: { 'application/json': { schema: ErrorResponse } },
+    },
+  },
+});
+
 export const keysMe = new OpenAPIHono({ defaultHook: defaultZodHook });
-keysMe.openapi(route, async (c) => {
+
+keysMe.openapi(getRoute, async (c) => {
   const apiKey = c.var.apiKey;
   if (!apiKey) {
-    throw new UnauthorizedError('Esta ruta requiere una API key. Envíala en `Authorization: Bearer <key>`.');
+    throw new UnauthorizedError(
+      'Esta ruta requiere una API key. Envíala en `Authorization: Bearer <key>`.',
+    );
   }
   return c.json(
     {
@@ -57,6 +100,24 @@ keysMe.openapi(route, async (c) => {
       created_at: apiKey.createdAt.toISOString(),
       last_used_at: apiKey.lastUsedAt?.toISOString() ?? null,
       request_count: apiKey.requestCount,
+    },
+    200,
+  );
+});
+
+keysMe.openapi(deleteRoute, async (c) => {
+  const apiKey = c.var.apiKey;
+  if (!apiKey) {
+    throw new UnauthorizedError(
+      'Esta ruta requiere una API key. Envíala en `Authorization: Bearer <key>`.',
+    );
+  }
+  await revokeKey(db(), apiKey.id);
+  return c.json(
+    {
+      revoked: true,
+      id: apiKey.id,
+      message: 'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
     },
     200,
   );

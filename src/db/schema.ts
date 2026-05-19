@@ -105,3 +105,24 @@ export const apiKeys = pgTable(
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+
+/**
+ * Daily usage histogram per API key. One row per (key_id, date), so for a
+ * key that fires every weekday we accumulate ~22 rows per month — cheap
+ * storage and exactly the shape needed for "calls per day in the last 30
+ * days" charts.
+ */
+export const apiKeyUsageDaily = pgTable(
+  'api_key_usage_daily',
+  {
+    keyId: integer('key_id').notNull(),
+    date: date('date').notNull(),
+    count: bigint('count', { mode: 'number' }).notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.keyId, table.date] }),
+    index('api_key_usage_daily_key_idx').on(table.keyId, table.date.desc()),
+  ],
+);
+
+export type ApiKeyUsageDaily = typeof apiKeyUsageDaily.$inferSelect;

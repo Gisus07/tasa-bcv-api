@@ -141,3 +141,69 @@ export const ApiKeyInfo = z
     request_count: z.number().int().nonnegative(),
   })
   .openapi('ApiKeyInfo');
+
+/** Admin-only listing entry: similar to ApiKeyInfo plus id and revoked status. */
+export const AdminKeyEntry = z
+  .object({
+    id: z.number().int().positive(),
+    key_prefix: z.string(),
+    name: z.string(),
+    email: z.string(),
+    purpose: z.string().nullable(),
+    tier: z.string(),
+    created_at: z.string().datetime(),
+    last_used_at: z.string().datetime().nullable(),
+    request_count: z.number().int().nonnegative(),
+    revoked_at: z.string().datetime().nullable(),
+  })
+  .openapi('AdminKeyEntry');
+
+export const AdminKeyList = z
+  .object({
+    count: z.number().int().nonnegative(),
+    keys: z.array(AdminKeyEntry),
+  })
+  .openapi('AdminKeyList');
+
+export const AdminKeyIdParam = z.object({
+  id: z.coerce.number().int().positive().openapi({ example: 1 }),
+});
+
+export const RevokeKeyResponse = z
+  .object({
+    revoked: z.boolean(),
+    id: z.number().int().positive(),
+    message: z.string(),
+  })
+  .openapi('RevokeKeyResponse');
+
+export const KeyUsageDay = z
+  .object({
+    date: DateString,
+    count: z.number().int().nonnegative().openapi({ example: 87 }),
+  })
+  .openapi('KeyUsageDay');
+
+export const KeyUsageResponse = z
+  .object({
+    key_prefix: z.string(),
+    days: z.number().int().positive().openapi({ example: 30, description: 'Ventana solicitada' }),
+    total_requests: z.number().int().nonnegative().openapi({
+      description: 'Suma de requests en la ventana (no incluye días sin uso, esos no se almacenan).',
+    }),
+    usage: z.array(KeyUsageDay).openapi({
+      description: 'Días con uso, ordenados de más reciente a más antiguo. Días sin uso no aparecen.',
+    }),
+  })
+  .openapi('KeyUsageResponse');
+
+export const UsageQuery = z.object({
+  days: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(365)
+    .optional()
+    .default(30)
+    .openapi({ example: 30, description: 'Días hacia atrás a incluir (1-365). Default 30.' }),
+});

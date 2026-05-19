@@ -1,7 +1,8 @@
 import { randomBytes, createHash } from 'node:crypto';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
-import { apiKeys, type ApiKey } from '../db/schema.js';
+import { apiKeys, apiKeyUsageDaily, type ApiKey, type ApiKeyUsageDaily } from '../db/schema.js';
+import { addDays, todayCaracas } from '../lib/dates.js';
 
 /** All issued keys start with this prefix so they're identifiable in logs / leaks. */
 export const KEY_PREFIX = 'tbk_';
@@ -69,11 +70,12 @@ export async function findActiveByPlainKey(
 }
 
 /**
- * Bumps last_used_at and request_count in a single statement.
+ * Bumps the per-key counters in one round trip plus the daily histogram in
+ * another. Two statements total; both are fire-and-forget from the caller's
+ * perspective (the request handler doesn't await this).
  *
- * Fire-and-forget from the request handler: we update on every successful
- * authenticated request, but it's an unawaited promise so the response isn't
- * blocked. PostgreSQL coalesces concurrent updates fine for this counter.
+ * The histogram entry uses ON CONFLICT DO UPDATE so concurrent requests on
+ * the same (key_id, today) row coalesce safely without explicit locks.
  */
 export async function bumpUsage(d: Database, keyId: number): Promise<void> {
   await d
@@ -83,6 +85,30 @@ export async function bumpUsage(d: Database, keyId: number): Promise<void> {
       requestCount: sql`${apiKeys.requestCount} + 1`,
     })
     .where(eq(apiKeys.id, keyId));
+
+  const today = todayCaracas();
+  await d
+    .insert(apiKeyUsageDaily)
+    .values({ keyId, date: today, count: 1 })
+    .onConflictDoUpdate({
+      target: [apiKeyUsageDaily.keyId, apiKeyUsageDaily.date],
+      set: { count: sql`${apiKeyUsageDaily.count} + 1` },
+    });
+}
+
+/** Returns daily counters for the last `days` days (inclusive of today). */
+export async function getDailyUsage(
+  d: Database,
+  keyId: number,
+  days = 30,
+): Promise<ApiKeyUsageDaily[]> {
+  const today = todayCaracas();
+  const since = addDays(today, -(days - 1));
+  return d
+    .select()
+    .from(apiKeyUsageDaily)
+    .where(and(eq(apiKeyUsageDaily.keyId, keyId), gte(apiKeyUsageDaily.date, since)))
+    .orderBy(desc(apiKeyUsageDaily.date));
 }
 
 /** Soft-delete: mark the key revoked. Future requests with it fail auth. */
