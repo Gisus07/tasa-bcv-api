@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { parseEurWorkbook } from './parser.eur.js';
+import { parseEurWorkbook, parseEurWorkbookSafe } from './parser.eur.js';
 
 const fixture = readFileSync(resolve('fixtures/2_1_2b26_otrasmonedas.xls'));
 const fixture2021 = readFileSync(resolve('fixtures/2_1_2d21_otrasmonedas.xls'));
 const fixture2020 = readFileSync(resolve('fixtures/2_1_2d20_otrasmonedas.xls'));
+const fixture2020Q1 = readFileSync(resolve('fixtures/2_1_2a20_otrasmonedas.xls'));
 
 describe('parseEurWorkbook', () => {
   const records = parseEurWorkbook(fixture, '2_1_2b26_otrasmonedas.xls');
@@ -82,5 +83,32 @@ describe('parseEurWorkbook (2020 layout: "Bs./M.E" without trailing period)', ()
     expect(target?.currency).toBe('EUR');
     expect(target?.rate).toBe('547555.99981734');
     expect(target?.publishedAt).toBe('2020-10-23');
+  });
+});
+
+describe('parseEurWorkbook (early 2020 layout: "Bs.S/M.E" — bolívar soberano)', () => {
+  it('parses Q1 2020 where the anchor uses the legacy "Bs.S" prefix', () => {
+    // Pre-redenomination naming: the bolívar was "Bs.S" (Soberano) and the
+    // Bs./M.E. header included an extra "S": "Bs.S/M.E". Today it would be
+    // "Bs./M.E.". The anchor regex must accept both.
+    const records = parseEurWorkbook(fixture2020Q1, '2_1_2a20_otrasmonedas.xls');
+    expect(records.length).toBeGreaterThan(40);
+
+    // Spot-check 26/03/2020 → Fecha Valor 27/03/2020 → EUR Venta 81349.02768139.
+    const target = records.find((r) => r.date === '2020-03-27');
+    expect(target).toBeDefined();
+    expect(target?.currency).toBe('EUR');
+    expect(target?.rate).toBe('81349.02768139');
+    expect(target?.publishedAt).toBe('2020-03-26');
+  });
+});
+
+describe('parseEurWorkbookSafe', () => {
+  it('returns parsed records plus a list of skipped sheets without throwing', () => {
+    const { records, skipped } = parseEurWorkbookSafe(fixture, '2_1_2b26_otrasmonedas.xls');
+    expect(records.length).toBeGreaterThan(20);
+    expect(Array.isArray(skipped)).toBe(true);
+    // Our healthy Q2 2026 fixture should not skip anything.
+    expect(skipped).toEqual([]);
   });
 });

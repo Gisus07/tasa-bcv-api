@@ -4,7 +4,7 @@ import type { NewRate } from '../../db/schema.js';
 import { upsertRates } from '../../db/queries.js';
 import { logger } from '../../logger.js';
 import { fetchBcv } from './client.js';
-import { parseEurWorkbook } from './parser.eur.js';
+import { parseEurWorkbook, parseEurWorkbookSafe } from './parser.eur.js';
 import { parseUsdWorkbook } from './parser.usd.js';
 import { scrapeBcvHomepage } from './scraper.html.js';
 import { enumerateEurQuarters, eurQuarterUrl, usdHistoryUrl } from './urls.js';
@@ -73,12 +73,24 @@ export async function ingestEurHistory(
             return;
           }
           filesFetched++;
-          const records = parseEurWorkbook(result.body, filename);
+          // Use the lenient parser so a single bad sheet doesn't poison the
+          // whole quarter — each bad sheet only loses its own day's EUR row.
+          const { records, skipped } = parseEurWorkbookSafe(result.body, filename);
           allRecords.push(...records);
-          log.info(
-            { url, filename, records: records.length },
-            'parsed EUR quarter',
-          );
+          if (skipped.length > 0) {
+            for (const s of skipped) {
+              errors.push(`${filename}#${s.sheet}: ${s.reason}`);
+            }
+            log.warn(
+              { url, filename, records: records.length, skipped: skipped.map((s) => s.sheet) },
+              'parsed EUR quarter with some skipped sheets',
+            );
+          } else {
+            log.info(
+              { url, filename, records: records.length },
+              'parsed EUR quarter',
+            );
+          }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
           errors.push(`${filename}: ${msg}`);

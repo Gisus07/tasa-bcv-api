@@ -27,6 +27,54 @@ const FECHA_OPERACION_RE = /Fecha\s+Operacion:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i;
  * name), since the sheet name is the operation date and the BCV rule maps
  * each operation to the next applicable business day.
  */
+export interface ParseEurResult {
+  records: RateRecord[];
+  skipped: { sheet: string; reason: string }[];
+}
+
+/**
+ * Like {@link parseEurWorkbook} but also returns sheets that couldn't be
+ * parsed (instead of throwing on the first failure). Useful for the backfill
+ * job, which logs the skipped count rather than discarding a whole quarter.
+ */
+export function parseEurWorkbookSafe(buffer: Buffer, sourceFile: string): ParseEurResult {
+  const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+  const records: RateRecord[] = [];
+  const skipped: { sheet: string; reason: string }[] = [];
+
+  for (const sheetName of wb.SheetNames) {
+    if (!SHEET_NAME_IS_DATE.test(sheetName)) continue;
+    const sheet = wb.Sheets[sheetName];
+    if (!sheet) continue;
+
+    try {
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1,
+        raw: true,
+        defval: null,
+      });
+
+      const { applicationDate, publishedAt } = extractDates(rows, sheetName);
+      const eurRate = extractEurVentaBs(rows, sheetName);
+
+      records.push({
+        date: applicationDate,
+        currency: 'EUR',
+        rate: eurRate.toFixed(8),
+        sourceFile: `${sourceFile}#${sheetName}`,
+        publishedAt,
+      });
+    } catch (err) {
+      skipped.push({
+        sheet: sheetName,
+        reason: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return { records, skipped };
+}
+
 export function parseEurWorkbook(buffer: Buffer, sourceFile: string): RateRecord[] {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const records: RateRecord[] = [];
@@ -148,9 +196,14 @@ function findVentaBsColumn(rows: unknown[][]): number {
     const row = rows[r]!;
     for (let c = 0; c < row.length; c++) {
       const cell = row[c];
-      // The trailing period after "M.E" is present from 2021 onward but
-      // omitted in 2020 files. Match both spellings.
-      if (typeof cell === 'string' && /^\s*Bs\.\s*\/\s*M\.E\.?\s*$/i.test(cell)) {
+      // BCV header variants seen so far:
+      //   "Bs./M.E."    (2021-2026, after the bolívar digital redenomination)
+      //   "Bs./M.E"     (some 2020 sheets, trailing period dropped)
+      //   "Bs.S/M.E"    (early 2020, bolívar soberano — extra "S" before slash)
+      //   "Bs.S/M.E."   (theoretical variant with both peculiarities)
+      // The regex accepts an optional "S" suffix on Bs. and an optional
+      // trailing period on M.E.
+      if (typeof cell === 'string' && /^\s*Bs\.\s*S?\s*\/\s*M\.E\.?\s*$/i.test(cell)) {
         bsAnchorCol = c;
         bsAnchorRow = r;
         break;
