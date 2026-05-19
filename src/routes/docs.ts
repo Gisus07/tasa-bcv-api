@@ -2,18 +2,53 @@ import { Hono } from 'hono';
 import { apiReference } from '@scalar/hono-api-reference';
 
 /**
- * Serves the Scalar UI for both languages plus an Accept-Language auto-detect
- * on the canonical `/docs` path.
- *
+ * Light, opinionated branding for the Scalar docs page. Avoids overwhelming
+ * Scalar's default styles — only tweaks colors, spacing of the sidebar header,
+ * and the link panel so the page reads as "tasa-bcv-api" instead of "yet
+ * another OpenAPI playground".
+ */
+const CUSTOM_CSS = `
+:root {
+  --scalar-font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --scalar-font-code: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  --scalar-color-accent: #7c3aed;
+  --scalar-color-accent-hover: #6d28d9;
+}
+
+.dark-mode {
+  --scalar-color-accent: #a78bfa;
+  --scalar-color-accent-hover: #c4b5fd;
+}
+
+/* Slight visual polish */
+.scalar-card { border-radius: 12px; }
+.scalar-api-reference .heading { letter-spacing: -0.01em; }
+`;
+
+const COMMON_OPTIONS = {
+  theme: 'purple' as const,
+  customCss: CUSTOM_CSS,
+  // Surface the most popular HTTP clients first in the playground.
+  hiddenClients: {
+    node: ['undici', 'unirest'],
+    php: ['guzzle', 'http2'],
+    java: ['asynchttp', 'nethttp', 'okhttp', 'unirest'],
+    go: ['native'],
+    csharp: ['httpclient', 'restsharp'],
+    kotlin: ['okhttp'],
+    objc: ['nsurlsession'],
+    swift: ['nsurlsession'],
+    r: ['httr'],
+  },
+};
+
+/**
  * Routes:
  *   GET /docs       → Spanish (default). Redirects to /docs/en when the
  *                     browser's primary Accept-Language starts with "en"
  *                     and the visitor hasn't explicitly asked to stay (?lang=es).
  *   GET /docs/es    → Spanish, explicit.
  *   GET /docs/en    → English.
- *
- * The OpenAPI JSON itself lives at /openapi.json (ES) and /openapi-en.json (EN).
- * Scalar pulls those over the network when the page renders.
  */
 export const docs = new Hono();
 
@@ -36,7 +71,7 @@ docs.get(
     pageTitle: 'tasa-bcv-api · Documentación',
     ...({
       spec: { url: '/openapi.json' },
-      theme: 'purple',
+      ...COMMON_OPTIONS,
     } as Record<string, unknown>),
   }),
 );
@@ -47,7 +82,7 @@ docs.get(
     pageTitle: 'tasa-bcv-api · Documentación',
     ...({
       spec: { url: '/openapi.json' },
-      theme: 'purple',
+      ...COMMON_OPTIONS,
     } as Record<string, unknown>),
   }),
 );
@@ -58,7 +93,7 @@ docs.get(
     pageTitle: 'tasa-bcv-api · API reference',
     ...({
       spec: { url: '/openapi-en.json' },
-      theme: 'purple',
+      ...COMMON_OPTIONS,
     } as Record<string, unknown>),
   }),
 );

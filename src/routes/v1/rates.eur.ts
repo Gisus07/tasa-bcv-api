@@ -14,7 +14,27 @@ const route = createRoute({
   responses: {
     200: {
       description: 'Tasa EUR',
-      content: { 'application/json': { schema: SingleRate } },
+      content: {
+        'application/json': {
+          schema: SingleRate,
+          examples: {
+            normal: {
+              summary: 'Día con publicación',
+              value: { date: '2026-05-14', currency: 'EUR', rate: 598.12171255 },
+            },
+            propagated: {
+              summary: 'Día propagado (sábado)',
+              value: {
+                date: '2026-05-16',
+                currency: 'EUR',
+                rate: 601.4520428,
+                is_propagated: true,
+                propagated_from: '2026-05-15',
+              },
+            },
+          },
+        },
+      },
     },
     400: {
       description: 'Fecha fuera de rango o anterior al histórico disponible',

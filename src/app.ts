@@ -115,6 +115,9 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
   app.route('/v1', buildV1());
   app.route('/', docs);
 
+  const PRODUCTION_URL =
+    process.env.PUBLIC_BASE_URL ?? 'https://tasa-bcv-api-production.up.railway.app';
+
   // OpenAPI spec (idioma por defecto: español)
   app.doc('/openapi.json', {
     openapi: '3.1.0',
@@ -123,16 +126,27 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       version: '0.1.0',
       description:
         'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 00:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.',
+      contact: {
+        name: 'Repositorio',
+        url: 'https://github.com/Gisus07/tasa-bcv-api',
+      },
       license: {
         name: 'AGPL-3.0-or-later',
         url: 'https://www.gnu.org/licenses/agpl-3.0.html',
       },
     },
+    servers: [
+      { url: PRODUCTION_URL, description: 'Producción' },
+    ],
     tags: [
       { name: 'rates', description: 'Consultas de tasas de cambio' },
       { name: 'system', description: 'Estado y metadatos' },
       { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
     ],
+    externalDocs: {
+      description: 'Código fuente y documentación extendida',
+      url: 'https://github.com/Gisus07/tasa-bcv-api',
+    },
   });
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',
@@ -150,16 +164,27 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
         version: '0.1.0',
         description:
           'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
+        contact: {
+          name: 'Repository',
+          url: 'https://github.com/Gisus07/tasa-bcv-api',
+        },
         license: {
           name: 'AGPL-3.0-or-later',
           url: 'https://www.gnu.org/licenses/agpl-3.0.html',
         },
       },
+      servers: [
+        { url: PRODUCTION_URL, description: 'Production' },
+      ],
       tags: [
         { name: 'rates', description: 'Exchange rate queries' },
         { name: 'system', description: 'Health and metadata' },
         { name: 'admin', description: 'Administrative endpoints (require bearer token)' },
       ],
+      externalDocs: {
+        description: 'Source code and extended documentation',
+        url: 'https://github.com/Gisus07/tasa-bcv-api',
+      },
     });
     return c.json(translateSpec(spec, ES_TO_EN));
   });

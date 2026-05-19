@@ -16,7 +16,40 @@ const route = createRoute({
   responses: {
     200: {
       description: 'Tasas dentro del rango solicitado',
-      content: { 'application/json': { schema: RangeResponse } },
+      content: {
+        'application/json': {
+          schema: RangeResponse,
+          example: {
+            from: '2026-05-14',
+            to: '2026-05-17',
+            count: 4,
+            rates: [
+              { date: '2026-05-14', currency: 'USD', rate: 510.7873 },
+              {
+                date: '2026-05-15',
+                currency: 'USD',
+                rate: 510.7873,
+                is_propagated: true,
+                propagated_from: '2026-05-14',
+              },
+              {
+                date: '2026-05-16',
+                currency: 'USD',
+                rate: 510.7873,
+                is_propagated: true,
+                propagated_from: '2026-05-14',
+              },
+              {
+                date: '2026-05-17',
+                currency: 'USD',
+                rate: 510.7873,
+                is_propagated: true,
+                propagated_from: '2026-05-14',
+              },
+            ],
+          },
+        },
+      },
     },
     400: {
       description: 'Rango inválido, demasiado grande, o fecha fuera de límites',

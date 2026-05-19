@@ -14,7 +14,16 @@ const route = createRoute({
   responses: {
     200: {
       description: 'Detalles del último run exitoso',
-      content: { 'application/json': { schema: LastUpdatedResponse } },
+      content: {
+        'application/json': {
+          schema: LastUpdatedResponse,
+          example: {
+            last_successful_run_at: '2026-05-19T04:00:00.000Z',
+            last_successful_job_type: 'daily',
+            rows_upserted: 12,
+          },
+        },
+      },
     },
   },
 });

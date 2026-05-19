@@ -15,7 +15,17 @@ const route = createRoute({
   responses: {
     200: {
       description: 'Últimas tasas USD y EUR',
-      content: { 'application/json': { schema: RatesPair } },
+      content: {
+        'application/json': {
+          schema: RatesPair,
+          example: {
+            date: '2026-05-19',
+            usd: 510.7873,
+            eur: 602.18768455,
+            propagated_currencies: ['USD'],
+          },
+        },
+      },
     },
     404: {
       description: 'Aún no hay tasas disponibles (ejecutar backfill o daily)',
