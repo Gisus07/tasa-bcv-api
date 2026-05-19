@@ -16,7 +16,7 @@ import {
   RangeTooLargeError,
 } from '../lib/errors.js';
 import type { Currency } from '../schemas/common.js';
-import type { RateRecordOutput } from '../schemas/rates.ts';
+import type { RatesPairOutput, SingleRateOutput } from '../schemas/rates.ts';
 
 const MAX_RANGE_DAYS = 365;
 
@@ -37,28 +37,19 @@ async function assertDateInRange(d: Database, date: string, currency: Currency):
   }
 }
 
-/** Returns the most recent rate per currency, paired into one object. */
-export async function getLatestPair(d: Database): Promise<{
-  date: string;
-  usd: RateRecordOutput;
-  eur: RateRecordOutput;
-}> {
+/** Returns the most recent rate per currency, paired into one flat object. */
+export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
   const usdRow = await getLatest(d, 'USD');
   const eurRow = await getLatest(d, 'EUR');
   if (!usdRow || !eurRow) {
     throw new NotFoundError('No rates are available yet. Run the backfill or daily job first.');
   }
-  // The two latest dates might differ if one currency was updated and the other not yet.
-  // Surface both with their own date; use the most recent as the pair "date" hint.
   const pairDate = usdRow.date > eurRow.date ? usdRow.date : eurRow.date;
-  return { date: pairDate, usd: rowToOutput(usdRow), eur: rowToOutput(eurRow) };
+  return buildPair(pairDate, usdRow, eurRow);
 }
 
-/** Returns USD + EUR for a given date. Both must exist (one will be propagated if it was a gap day). */
-export async function getPairByDate(
-  d: Database,
-  date: string,
-): Promise<{ date: string; usd: RateRecordOutput; eur: RateRecordOutput }> {
+/** Returns USD + EUR for a given date. */
+export async function getPairByDate(d: Database, date: string): Promise<RatesPairOutput> {
   await assertDateInRange(d, date, 'USD');
   await assertDateInRange(d, date, 'EUR');
   const usdRow = await getByDate(d, date, 'USD');
@@ -68,7 +59,7 @@ export async function getPairByDate(
       `No rates found for ${date}. Propagation may not have run yet for one of the currencies.`,
     );
   }
-  return { date, usd: rowToOutput(usdRow), eur: rowToOutput(eurRow) };
+  return buildPair(date, usdRow, eurRow);
 }
 
 /** Returns rates for a single currency on a given date, or the latest if `date` is omitted. */
@@ -76,18 +67,18 @@ export async function getSingleCurrency(
   d: Database,
   currency: Currency,
   date?: string,
-): Promise<RateRecordOutput> {
+): Promise<SingleRateOutput> {
   if (date === undefined) {
     const row = await getLatest(d, currency);
     if (!row) throw new NotFoundError(`No ${currency} rate available yet.`);
-    return rowToOutput(row);
+    return buildSingle(row);
   }
   await assertDateInRange(d, date, currency);
   const row = await getByDate(d, date, currency);
   if (!row) {
     throw new NotFoundError(`No ${currency} rate found for ${date}.`);
   }
-  return rowToOutput(row);
+  return buildSingle(row);
 }
 
 /** Returns rates within a date window. */
@@ -96,7 +87,7 @@ export async function getRange(
   from: string,
   to: string,
   currency: Currency | 'all',
-): Promise<{ from: string; to: string; count: number; rates: RateRecordOutput[] }> {
+): Promise<{ from: string; to: string; count: number; rates: SingleRateOutput[] }> {
   if (from > to) throw new InvalidRangeError(from, to);
   const days = diffDays(from, to) + 1;
   if (days > MAX_RANGE_DAYS) throw new RangeTooLargeError(days, MAX_RANGE_DAYS);
@@ -118,11 +109,12 @@ export async function getRange(
     }
   }
 
-  const rows = currency === 'all'
-    ? await getRangeQuery(d, from, to)
-    : await getRangeQuery(d, from, to, currency);
+  const rows =
+    currency === 'all'
+      ? await getRangeQuery(d, from, to)
+      : await getRangeQuery(d, from, to, currency);
 
-  return { from, to, count: rows.length, rates: rows.map(rowToOutput) };
+  return { from, to, count: rows.length, rates: rows.map(buildSingle) };
 }
 
 /** /v1/last-updated payload. */
@@ -142,17 +134,34 @@ export async function getLastUpdated(d: Database): Promise<{
   };
 }
 
-/** Maps a DB row to the public RateRecord shape (snake_case + numeric rate). */
-function rowToOutput(row: Rate): RateRecordOutput {
-  return {
+/**
+ * Maps a DB row to the public `SingleRate` shape. Optional fields are omitted
+ * unless they apply, so the JSON stays minimal for the common case.
+ */
+function buildSingle(row: Rate): SingleRateOutput {
+  const base: SingleRateOutput = {
     date: row.date,
-    currency_pair: row.currency === 'USD' ? 'USD/VES' : 'EUR/VES',
+    currency: row.currency as Currency,
     rate: Number(row.rate),
-    source: 'BCV',
-    source_file: row.sourceFile,
-    is_propagated: row.isPropagated,
-    propagated_from: row.propagatedFrom,
-    published_at: row.publishedAt,
-    fetched_at: row.fetchedAt.toISOString(),
   };
+  if (row.isPropagated) {
+    base.is_propagated = true;
+    if (row.propagatedFrom) base.propagated_from = row.propagatedFrom;
+  }
+  return base;
+}
+
+/** Builds the flat pair shape. `propagated_currencies` is omitted when none apply. */
+function buildPair(date: string, usdRow: Rate, eurRow: Rate): RatesPairOutput {
+  const propagated: Currency[] = [];
+  if (usdRow.isPropagated) propagated.push('USD');
+  if (eurRow.isPropagated) propagated.push('EUR');
+
+  const pair: RatesPairOutput = {
+    date,
+    usd: Number(usdRow.rate),
+    eur: Number(eurRow.rate),
+  };
+  if (propagated.length > 0) pair.propagated_currencies = propagated;
+  return pair;
 }

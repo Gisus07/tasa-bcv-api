@@ -27,7 +27,28 @@ export interface AppOptions {
  *   6. Error handler (last)
  */
 export function createApp(options: AppOptions = {}): OpenAPIHono {
-  const app = new OpenAPIHono();
+  const app = new OpenAPIHono({
+    // Unify Zod validation failures with our AppError shape.
+    // Otherwise @hono/zod-openapi would return the raw ZodError JSON.
+    defaultHook: (result, c) => {
+      if (!result.success) {
+        return c.json(
+          {
+            error: 'Invalid input',
+            code: 'VALIDATION_ERROR',
+            details: {
+              issues: result.error.issues.map((issue) => ({
+                path: issue.path.join('.') || undefined,
+                message: issue.message,
+                code: issue.code,
+              })),
+            },
+          },
+          400,
+        );
+      }
+    },
+  });
 
   // Per-request log line (method, path, status, ms)
   app.use(

@@ -5,6 +5,7 @@
 
 export type ErrorCode =
   | 'INVALID_DATE_FORMAT'
+  | 'VALIDATION_ERROR'
   | 'DATE_OUT_OF_RANGE'
   | 'DATE_BEFORE_HISTORY'
   | 'INVALID_RANGE'

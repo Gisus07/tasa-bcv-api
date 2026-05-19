@@ -1,56 +1,50 @@
 import { z } from '@hono/zod-openapi';
 import { CurrencyEnum, CurrencyOrAllEnum, DateString } from './common.js';
 
-/** A single rate as returned by the public API. */
-export const RateRecord = z
+/**
+ * A single rate as returned by the public API. The optional fields only
+ * appear when applicable: `is_propagated` and `propagated_from` are present
+ * if and only if the value was inherited from a previous business day
+ * (e.g. weekend, banking holiday).
+ */
+export const SingleRate = z
   .object({
     date: DateString,
-    currency_pair: z
-      .enum(['USD/VES', 'EUR/VES'])
-      .openapi({ example: 'USD/VES', description: 'Quoted pair' }),
+    currency: CurrencyEnum,
     rate: z
       .number()
       .positive()
       .openapi({ example: 510.7873, description: 'Tasa de venta oficial publicada por el BCV' }),
-    source: z
-      .literal('BCV')
-      .openapi({ description: 'Always "BCV" in v1; reserved for future alt sources' }),
-    source_file: z
-      .string()
-      .openapi({
-        example: '2_1_1_tdc.xlsx#2026',
-        description: 'Provenance: source file + sheet, or "scraper:bcv-home", or "propagated"',
-      }),
-    is_propagated: z
-      .boolean()
-      .openapi({
-        description:
-          'True when this row was carried forward (weekend, holiday, gap). Means the BCV did not publish a new rate on that date and the value is inherited from `propagated_from`.',
-      }),
-    propagated_from: DateString.nullable().openapi({
-      description: 'When is_propagated is true, the date the rate was inherited from',
-    }),
-    published_at: DateString.nullable().openapi({
+    is_propagated: z.literal(true).optional().openapi({
       description:
-        'When known (EUR only), the date BCV published the rate. Differs from `date` since the BCV publishes today the rate that applies tomorrow.',
+        'Solo aparece cuando el valor fue heredado (fin de semana o feriado). En días con publicación real este campo no se incluye.',
     }),
-    fetched_at: z.string().datetime().openapi({
-      example: '2026-05-19T04:00:00.000Z',
-      description: 'Server-side timestamp when this row was last written',
+    propagated_from: DateString.optional().openapi({
+      description: 'Fecha origen de la propagación. Solo presente cuando `is_propagated` lo está.',
     }),
   })
-  .openapi('RateRecord');
+  .openapi('SingleRate');
 
-export type RateRecordOutput = z.infer<typeof RateRecord>;
+export type SingleRateOutput = z.infer<typeof SingleRate>;
 
-/** Pair of USD + EUR rates for the same date. Used by /latest and /by-date. */
+/**
+ * USD + EUR for the same date in a flat shape. The `propagated_currencies`
+ * array surfaces which (if any) of the two values were carried forward — it
+ * only appears when at least one currency was propagated.
+ */
 export const RatesPair = z
   .object({
     date: DateString,
-    usd: RateRecord,
-    eur: RateRecord,
+    usd: z.number().positive().openapi({ example: 510.7873 }),
+    eur: z.number().positive().openapi({ example: 598.12171255 }),
+    propagated_currencies: z.array(CurrencyEnum).min(1).optional().openapi({
+      description:
+        'Solo aparece cuando alguna de las tasas fue propagada (heredada del último día hábil). Lista los códigos ISO de las monedas propagadas.',
+    }),
   })
   .openapi('RatesPair');
+
+export type RatesPairOutput = z.infer<typeof RatesPair>;
 
 export const RangeQuery = z.object({
   from: DateString,
@@ -60,7 +54,7 @@ export const RangeQuery = z.object({
 
 export const SingleCurrencyQuery = z.object({
   date: DateString.optional().openapi({
-    description: 'If omitted, returns the most recent rate.',
+    description: 'Si se omite, devuelve la tasa más reciente disponible.',
   }),
 });
 
@@ -68,16 +62,12 @@ export const ByDateParams = z.object({
   date: DateString,
 });
 
-export const CurrencyParams = z.object({
-  currency: CurrencyEnum,
-});
-
 export const RangeResponse = z
   .object({
     from: DateString,
     to: DateString,
     count: z.number().int().nonnegative(),
-    rates: z.array(RateRecord),
+    rates: z.array(SingleRate),
   })
   .openapi('RangeResponse');
 
