@@ -50,7 +50,9 @@ export async function fetchBcv(
       dispatcher: insecureDispatcher,
       headers: { ...DEFAULT_HEADERS, ...options.headers },
       signal: options.signal,
-      throwOnError: false,
+      // NB: undici@7 removed the `throwOnError` option from request(); the
+      // default behaviour is to resolve regardless of status, which is what
+      // we want (we inspect statusCode ourselves below).
     });
   } catch (err) {
     // Capture every diagnostic shape undici might surface: top-level code,
