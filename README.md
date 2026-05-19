@@ -59,24 +59,34 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | Histórico completo | USD desde **enero 2016**, EUR desde **marzo 2020** (los archivos oficiales del BCV) |
 | Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
 | Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
-| Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil con flag `is_propagated: true` |
-| OpenAPI 3.1 | Documentación interactiva con [Scalar](https://scalar.com/) |
-| Rate limit razonable | 30 req/min por IP, suficiente para casi cualquier uso |
+| Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil — el campo `propagated_currencies` lo señala |
+| Documentación bilingüe | `/docs` en español por defecto, `/docs/en` en inglés, auto-detect por `Accept-Language` |
+| Code samples integrados | Snippets listos en curl, JavaScript, TypeScript, Python, PHP y Go en la doc |
+| API keys gratuitas | Registro abierto en `/v1/keys/register` para subir el límite a 300 req/min |
+| Rate limit por tier | 30 req/min sin key, 300 req/min con key registrada |
 
 ## 📡 Endpoints (v1)
 
-| Método | Path | Descripción |
-|---|---|---|
-| `GET` | `/health` | Liveness + DB check |
-| `GET` | `/docs` | Documentación interactiva (Scalar) |
-| `GET` | `/openapi.json` | Especificación OpenAPI 3.1 |
-| `GET` | `/v1/rates/latest` | Últimas tasas USD y EUR |
-| `GET` | `/v1/rates/{date}` | Tasas USD y EUR para una fecha (`YYYY-MM-DD`) |
-| `GET` | `/v1/rates/range?from&to&currency` | Rango histórico (max 365 días) |
-| `GET` | `/v1/rates/usd?date=` | Solo USD (latest si omites `date`) |
-| `GET` | `/v1/rates/eur?date=` | Solo EUR |
-| `GET` | `/v1/last-updated` | Timestamp del último ingest exitoso |
-| `POST` | `/v1/admin/trigger-ingest` | Dispara ingest manual (requiere bearer token) |
+| Método | Path | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/health` | – | Liveness + DB check |
+| `GET` | `/docs`, `/docs/es`, `/docs/en` | – | Documentación interactiva (Scalar). Auto-detect de idioma. |
+| `GET` | `/openapi.json`, `/openapi-en.json` | – | Especificación OpenAPI 3.1 (ES/EN) |
+| `GET` | `/v1/rates/latest` | opcional | Últimas tasas USD y EUR |
+| `GET` | `/v1/rates/{date}` | opcional | Tasas USD y EUR para una fecha (`YYYY-MM-DD`) |
+| `GET` | `/v1/rates/range?from&to&currency` | opcional | Rango histórico (max 365 días) |
+| `GET` | `/v1/rates/usd?date=` | opcional | Solo USD (latest si omites `date`) |
+| `GET` | `/v1/rates/eur?date=` | opcional | Solo EUR |
+| `GET` | `/v1/last-updated` | – | Timestamp del último ingest exitoso |
+| `POST` | `/v1/keys/register` | – | Registrar API key (gratis, instantáneo) |
+| `GET` | `/v1/keys/me` | **key** | Metadata de mi key |
+| `GET` | `/v1/keys/me/usage?days=` | **key** | Histograma diario de uso |
+| `DELETE` | `/v1/keys/me` | **key** | Auto-revoke de la key |
+| `POST` | `/v1/admin/trigger-ingest` | **admin** | Disparar ingest manual |
+| `GET` | `/v1/admin/keys` | **admin** | Listar todas las keys |
+| `POST` | `/v1/admin/keys/{id}/revoke` | **admin** | Revocar key específica |
+
+> **Auth**: "opcional" = la API key sube tu rate limit pero no es obligatoria. "key" = requiere `Authorization: Bearer tbk_...`. "admin" = requiere `Authorization: Bearer $ADMIN_TOKEN`.
 
 ## ⚠️ Sobre el histórico pre-redenominación
 
