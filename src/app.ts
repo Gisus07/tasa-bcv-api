@@ -39,11 +39,67 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
 
   // Apply secure headers to API routes, but skip the docs UI which loads its
   // own assets (Scalar CDN) and would otherwise be blocked by a strict CSP.
-  app.use('/v1/*', secureHeaders());
-  app.use('/health', secureHeaders());
-  app.use('/openapi.json', secureHeaders());
+  const apiSecureHeaders = secureHeaders({
+    // Explicitly disable browser APIs we don't use — defense in depth in case
+    // someone embeds our JSON responses in a page they shouldn't.
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: [],
+      usb: [],
+      magnetometer: [],
+      gyroscope: [],
+      accelerometer: [],
+    },
+    // The API serves JSON, so the strictest CSP applies.
+    contentSecurityPolicy: {
+      defaultSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+    // HSTS is already set by Railway's edge, but we double down.
+    strictTransportSecurity: 'max-age=31536000; includeSubDomains; preload',
+  });
+  app.use('/v1/*', apiSecureHeaders);
+  app.use('/health', apiSecureHeaders);
+  app.use('/openapi.json', apiSecureHeaders);
 
-  app.use('*', cors({ origin: '*', allowMethods: ['GET', 'POST'] }));
+  // Stamp every response with the API version for client-side feature gating.
+  app.use('*', async (c, next) => {
+    await next();
+    c.header('X-API-Version', 'v1');
+  });
+
+  // Cache hints. Historical dates never change; "latest" can be cached briefly.
+  app.use('/v1/rates/*', async (c, next) => {
+    await next();
+    const path = c.req.path;
+    if (path.endsWith('/latest')) {
+      // 5-minute cache for "latest" — daily rates only change at 00:00 Caracas.
+      c.header('Cache-Control', 'public, max-age=300');
+    } else if (/\/v1\/rates\/\d{4}-\d{2}-\d{2}$/.test(path)) {
+      // Specific historical dates can be cached for a day. They rarely change
+      // (only on rare BCV corrections), and any change forces fetched_at to
+      // shift so clients with conditional requests still see the new value.
+      c.header('Cache-Control', 'public, max-age=86400');
+    } else {
+      c.header('Cache-Control', 'public, max-age=600');
+    }
+  });
+
+  // CORS: API is public, so allow any origin to read. POST is reserved for
+  // the admin endpoint, which is bearer-protected (CORS just gates browser
+  // visibility, not server-to-server calls).
+  app.use(
+    '*',
+    cors({
+      origin: '*',
+      allowMethods: ['GET', 'POST', 'OPTIONS'],
+      allowHeaders: ['Content-Type', 'Authorization'],
+      exposeHeaders: ['X-API-Version', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+      maxAge: 86400,
+    }),
+  );
 
   if (!options.disableRateLimit) {
     // Skip rate limit on /health so uptime checks don't get 429'd.
