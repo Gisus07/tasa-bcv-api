@@ -39,10 +39,33 @@ describe('createApp', () => {
       '/v1/rates/{date}',
       '/v1/last-updated',
       '/v1/admin/trigger-ingest',
+      '/v1/keys/register',
+      '/v1/keys/me',
     ];
     for (const p of expectedPaths) {
       expect(spec.paths[p]).toBeDefined();
     }
+  });
+
+  it('/v1/keys/me returns 401 without API key', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/v1/keys/me');
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
+
+  it('admin endpoint still works with Bearer (apiKeyResolver ignores non-tbk_ tokens)', async () => {
+    process.env.ADMIN_TOKEN = 'thisIsAStrongTokenForTesting1234';
+    const app = createApp({ disableRateLimit: true });
+    // Without the correct admin token: 401 from adminAuth (not from apiKeyResolver)
+    const res = await app.request('/v1/admin/trigger-ingest', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer notTheRightToken12345' },
+    });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('UNAUTHORIZED');
   });
 
   it('serves the Scalar UI at /docs (Spanish by default)', async () => {

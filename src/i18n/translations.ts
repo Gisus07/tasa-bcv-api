@@ -97,6 +97,27 @@ export const ES_TO_EN: Record<string, string> = {
     'API liveness and database reachability check',
   'La API y la base de datos están disponibles': 'The API and the database are reachable',
   'La base de datos no está disponible': 'The database is unreachable',
+
+  // ===== routes/v1/keys.* =====
+  'Gestión de API keys del tier Free': 'Free-tier API key management',
+  'Crear una API key del tier Free (gratis)': 'Create a Free-tier API key',
+  'Auto-registro público. Devuelve la API key en texto plano UNA SOLA VEZ. Guárdala — no la podemos mostrar de nuevo, solo el prefijo visible. La key da derecho a 300 req/min (vs 30 req/min sin key). Sin verificación de email por ahora — si abusan, se revoca.':
+    'Public self-registration. Returns the API key in plaintext ONLY ONCE. Save it — we can\'t show it again, only the visible prefix. The key grants 300 req/min (vs 30 req/min without a key). No email verification for now — abusers get revoked.',
+  'API key creada. Guarda `key` ahora mismo — solo se muestra una vez.':
+    'API key created. Save `key` right now — it is shown only once.',
+  'Entrada inválida (email mal formado, campos faltantes, etc.)':
+    'Invalid input (malformed email, missing fields, etc.)',
+  'La API key en texto plano. Guárdala AHORA — solo se muestra esta vez.':
+    'The plaintext API key. Save it NOW — shown only this time.',
+  'Prefijo visible que identifica la key (sin exponer el secreto).':
+    'Visible prefix that identifies the key (without exposing the secret).',
+  'Descripción opcional del uso planeado': 'Optional description of the intended use',
+  'El email debe tener un formato válido': 'Email must have a valid format',
+  'Info de mi API key': 'Info about my API key',
+  'Devuelve metadata de la key que se está usando para autenticar la llamada: prefijo visible, nombre, email, tier, fecha de creación, última vez usada y request count.':
+    'Returns metadata for the key authenticating the call: visible prefix, name, email, tier, creation date, last used timestamp, and request count.',
+  'Información de la API key': 'API key information',
+  'Falta API key o es inválida': 'Missing or invalid API key',
 };
 
 /**

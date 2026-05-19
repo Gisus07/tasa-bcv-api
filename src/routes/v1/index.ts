@@ -7,6 +7,8 @@ import { ratesUsd } from './rates.usd.js';
 import { ratesEur } from './rates.eur.js';
 import { lastUpdated } from './lastUpdated.js';
 import { adminTriggerIngest } from './admin.triggerIngest.js';
+import { keysRegister } from './keys.register.js';
+import { keysMe } from './keys.me.js';
 
 /** Mounts every v1 route under a single OpenAPIHono so they share the spec. */
 export function buildV1(): OpenAPIHono {
@@ -19,6 +21,8 @@ export function buildV1(): OpenAPIHono {
   v1.route('/', ratesUsd);
   v1.route('/', ratesEur);
   v1.route('/', lastUpdated);
+  v1.route('/', keysRegister);
+  v1.route('/', keysMe);
   v1.route('/', adminTriggerIngest);
   v1.route('/', ratesByDate);
   return v1;

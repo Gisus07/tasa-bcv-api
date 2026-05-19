@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import { logger as honoLogger } from 'hono/logger';
 import { secureHeaders } from 'hono/secure-headers';
 import { cors } from 'hono/cors';
+import { apiKeyResolver } from './middleware/apiKey.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { ipRateLimit } from './middleware/rateLimit.js';
 import { defaultZodHook } from './middleware/zodHook.js';
@@ -106,6 +107,11 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
     }),
   );
 
+  // Resolve API keys before the rate limiter so per-tier limits apply.
+  // The resolver attaches `c.var.apiKey` (null when anonymous); the limiter
+  // reads it to pick the right bucket size.
+  app.use('/v1/*', apiKeyResolver());
+
   if (!options.disableRateLimit) {
     // Skip rate limit on /health so uptime checks don't get 429'd.
     app.use('/v1/*', ipRateLimit());
@@ -140,6 +146,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
     ],
     tags: [
       { name: 'rates', description: 'Consultas de tasas de cambio' },
+      { name: 'keys', description: 'Gestión de API keys del tier Free' },
       { name: 'system', description: 'Estado y metadatos' },
       { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
     ],
@@ -178,6 +185,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       ],
       tags: [
         { name: 'rates', description: 'Exchange rate queries' },
+        { name: 'keys', description: 'Free-tier API key management' },
         { name: 'system', description: 'Health and metadata' },
         { name: 'admin', description: 'Administrative endpoints (require bearer token)' },
       ],
