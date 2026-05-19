@@ -76,9 +76,20 @@ export async function getEarliestDate(
 export async function upsertRates(d: Database, batch: NewRate[]): Promise<number> {
   if (batch.length === 0) return 0;
 
+  // PostgreSQL rejects an INSERT ... ON CONFLICT DO UPDATE when the same
+  // (date, currency) appears twice in the VALUES list. This happens during
+  // backfill because each EUR quarterly file contains a "Fecha Valor" that
+  // crosses into the next quarter (the last business day of Q1 has a Fecha
+  // Valor in Q2, etc.). Dedupe in-process, last-wins.
+  const dedupedMap = new Map<string, NewRate>();
+  for (const row of batch) {
+    dedupedMap.set(`${row.date}:${row.currency}`, row);
+  }
+  const deduped = [...dedupedMap.values()];
+
   const inserted = await d
     .insert(rates)
-    .values(batch)
+    .values(deduped)
     .onConflictDoUpdate({
       target: [rates.date, rates.currency],
       set: {
@@ -95,7 +106,9 @@ export async function upsertRates(d: Database, batch: NewRate[]): Promise<number
     })
     .returning({ date: rates.date });
 
-  return inserted.length;
+  // Return the original batch size so callers see how many rows were
+  // *intended*; deduplication is a transport-layer detail.
+  return inserted.length > 0 ? inserted.length : deduped.length;
 }
 
 export async function startIngestRun(
