@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { SingleCurrencyQuery, SingleRate } from '../../schemas/rates.js';
@@ -26,7 +27,7 @@ const route = createRoute({
   },
 });
 
-export const ratesEur = new OpenAPIHono();
+export const ratesEur = new OpenAPIHono({ defaultHook: defaultZodHook });
 ratesEur.openapi(route, async (c) => {
   const { date } = c.req.valid('query');
   const data = await getSingleCurrency(db(), 'EUR', date);

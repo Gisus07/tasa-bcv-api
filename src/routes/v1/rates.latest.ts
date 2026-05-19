@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { RatesPair } from '../../schemas/rates.js';
@@ -23,7 +24,7 @@ const route = createRoute({
   },
 });
 
-export const ratesLatest = new OpenAPIHono();
+export const ratesLatest = new OpenAPIHono({ defaultHook: defaultZodHook });
 ratesLatest.openapi(route, async (c) => {
   const data = await getLatestPair(db());
   return c.json(data, 200);

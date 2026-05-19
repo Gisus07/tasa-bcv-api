@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { defaultZodHook } from '../../middleware/zodHook.js';
 import { ratesLatest } from './rates.latest.js';
 import { ratesByDate } from './rates.byDate.js';
 import { ratesRange } from './rates.range.js';
@@ -9,7 +10,7 @@ import { adminTriggerIngest } from './admin.triggerIngest.js';
 
 /** Mounts every v1 route under a single OpenAPIHono so they share the spec. */
 export function buildV1(): OpenAPIHono {
-  const v1 = new OpenAPIHono();
+  const v1 = new OpenAPIHono({ defaultHook: defaultZodHook });
   // IMPORTANT: register specific routes (rates/latest, rates/range, rates/usd,
   // rates/eur, last-updated, admin/*) BEFORE the catch-all `/rates/{date}` to
   // keep static paths from being captured as date params.

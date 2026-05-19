@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
+import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
 import { runDailyUpdate } from '../../jobs/dailyUpdate.js';
 import { logger } from '../../logger.js';
@@ -42,7 +43,7 @@ const route = createRoute({
   },
 });
 
-export const adminTriggerIngest = new OpenAPIHono();
+export const adminTriggerIngest = new OpenAPIHono({ defaultHook: defaultZodHook });
 adminTriggerIngest.use('/admin/*', adminAuth());
 adminTriggerIngest.openapi(route, async (c) => {
   let body: { await?: boolean } = {};

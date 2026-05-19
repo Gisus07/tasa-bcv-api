@@ -4,6 +4,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { cors } from 'hono/cors';
 import { errorHandler } from './middleware/errorHandler.js';
 import { ipRateLimit } from './middleware/rateLimit.js';
+import { defaultZodHook } from './middleware/zodHook.js';
 import { health } from './routes/health.js';
 import { docs } from './routes/docs.js';
 import { buildV1 } from './routes/v1/index.js';
@@ -27,28 +28,10 @@ export interface AppOptions {
  *   6. Error handler (last)
  */
 export function createApp(options: AppOptions = {}): OpenAPIHono {
-  const app = new OpenAPIHono({
-    // Unify Zod validation failures with our AppError shape.
-    // Otherwise @hono/zod-openapi would return the raw ZodError JSON.
-    defaultHook: (result, c) => {
-      if (!result.success) {
-        return c.json(
-          {
-            error: 'Invalid input',
-            code: 'VALIDATION_ERROR',
-            details: {
-              issues: result.error.issues.map((issue) => ({
-                path: issue.path.join('.') || undefined,
-                message: issue.message,
-                code: issue.code,
-              })),
-            },
-          },
-          400,
-        );
-      }
-    },
-  });
+  // The defaultHook only applies to routes registered directly on this app.
+  // Sub-routers (built with new OpenAPIHono inside each module) need to
+  // receive the same hook explicitly. See middleware/zodHook.ts.
+  const app = new OpenAPIHono({ defaultHook: defaultZodHook });
 
   // Per-request log line (method, path, status, ms)
   app.use(

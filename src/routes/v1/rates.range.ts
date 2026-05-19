@@ -1,4 +1,5 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
+import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { RangeQuery, RangeResponse } from '../../schemas/rates.js';
@@ -24,7 +25,7 @@ const route = createRoute({
   },
 });
 
-export const ratesRange = new OpenAPIHono();
+export const ratesRange = new OpenAPIHono({ defaultHook: defaultZodHook });
 ratesRange.openapi(route, async (c) => {
   const { from, to, currency } = c.req.valid('query');
   const data = await getRange(db(), from, to, currency);
