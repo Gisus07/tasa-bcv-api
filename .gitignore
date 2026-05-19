@@ -1,35 +1,53 @@
-# Archivos de Python
+# Node
+node_modules/
+dist/
+build/
+.tsbuildinfo
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+.claude/
+.DS_Store
+Thumbs.db
+
+# Docker
+*.pid
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Drizzle
+drizzle/meta/_journal.json.tmp
+
+# OS
+*.swp
+*.swo
+
+# --- Legacy (Python bot) ---
 __pycache__/
 *.py[cod]
 *.pyd
 *.db
-
-# Archivos de entornos virtuales
 .venv/
 env/
 venv/
-
-# Archivos de configuración de entorno (variables sensibles)
-.env
-
-# Archivos de logs
-logs/
-*.log
-
-# Archivos específicos de editor y sistema
-.vscode/
-.DS_Store
-Thumbs.db
-
-# Archivos de claves sensibles (como el archivo de clave de Firebase)
 firebase_key.json
 firebase_key_test_prod.jsonc
-
-# Archivos generados por Docker
-*.pid
-
-# Docker
-docker-compose.yml
-
-#Reinicio
 reiniciar-bot.txt
