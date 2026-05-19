@@ -2,11 +2,41 @@
 
 > API REST pública y gratuita con el histórico oficial de tasas USD/VES y EUR/VES del Banco Central de Venezuela.
 
+[![status](https://img.shields.io/badge/status-live-brightgreen)](https://tasa-bcv-api-production.up.railway.app/docs)
 [![CI](https://github.com/Gisus07/tasa-bcv-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Gisus07/tasa-bcv-api/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/Gisus07/tasa-bcv-api?color=blue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-22%20LTS-brightgreen)](https://nodejs.org/)
 [![Last commit](https://img.shields.io/github/last-commit/Gisus07/tasa-bcv-api)](https://github.com/Gisus07/tasa-bcv-api/commits/main)
 [![Legacy bot](https://img.shields.io/badge/v0--legacy-Telegram%20Bot-lightgrey)](https://github.com/Gisus07/tasa-bcv-api/tree/v0-legacy-python-bot)
+
+---
+
+## 🟢 En producción
+
+```
+https://tasa-bcv-api-production.up.railway.app
+```
+
+- 📚 **Docs interactivas:** [/docs](https://tasa-bcv-api-production.up.railway.app/docs)
+- 📄 **OpenAPI spec:** [/openapi.json](https://tasa-bcv-api-production.up.railway.app/openapi.json)
+- ❤️ **Healthcheck:** [/health](https://tasa-bcv-api-production.up.railway.app/health)
+
+**Ejemplos rápidos** (datos reales en vivo):
+
+```bash
+# Última tasa publicada
+curl https://tasa-bcv-api-production.up.railway.app/v1/rates/latest
+
+# Tasa de un día específico
+curl https://tasa-bcv-api-production.up.railway.app/v1/rates/2026-05-14
+# → USD 510.7873 / EUR 598.12171255
+
+# Rango histórico
+curl "https://tasa-bcv-api-production.up.railway.app/v1/rates/range?from=2026-05-01&to=2026-05-19&currency=USD"
+
+# Solo USD del día
+curl https://tasa-bcv-api-production.up.railway.app/v1/rates/usd
+```
 
 ---
 
@@ -25,10 +55,10 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 
 | Capacidad | Detalle |
 |---|---|
-| Tasa del día | USD/VES y EUR/VES actualizadas diariamente a las 00:00 Caracas |
-| Histórico completo | USD desde 2016, EUR desde 2024 (los archivos oficiales del BCV) |
+| Tasa del día | USD/VES y EUR/VES actualizadas automáticamente a las 00:00 Caracas (lun-vie) |
+| Histórico completo | USD desde **enero 2016**, EUR desde **marzo 2020** (los archivos oficiales del BCV) |
 | Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
-| Sin scraping | Las fuentes son los XLS oficiales del BCV + scraping mínimo de la homepage para la tasa del día |
+| Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
 | Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil con flag `is_propagated: true` |
 | OpenAPI 3.1 | Documentación interactiva con [Scalar](https://scalar.com/) |
 | Rate limit razonable | 30 req/min por IP, suficiente para casi cualquier uso |
@@ -48,6 +78,20 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | `GET` | `/v1/last-updated` | Timestamp del último ingest exitoso |
 | `POST` | `/v1/admin/trigger-ingest` | Dispara ingest manual (requiere bearer token) |
 
+## ⚠️ Sobre el histórico pre-redenominación
+
+El **1 de octubre de 2021** el BCV redenominó el bolívar eliminando 6 ceros: `1.000.000 Bs.S → 1 Bs.D`. La API devuelve **el valor exacto que el BCV publicó en cada época**, sin transformaciones. Esto significa que las tasas anteriores a octubre 2021 están en la escala antigua (Bolívar Soberano).
+
+Ejemplo:
+
+| Fecha | USD/VES | EUR/VES | Escala |
+|---|---|---|---|
+| 2020-03-27 | 73,830.16 | 81,349.03 | Bs.S (Soberano) |
+| 2022-01-03 | 4.59 | 5.21 | Bs.D (Digital) |
+| 2026-05-14 | 510.79 | 598.12 | Bs.D (Digital) |
+
+Para comparar tasas pre y post-redenominación, divide los valores antiguos entre 1,000,000.
+
 ## 🛠️ Stack
 
 | Capa | Tecnología |
@@ -64,12 +108,6 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | Docs UI | [Scalar](https://scalar.com/) |
 | Tests | [vitest](https://vitest.dev/) |
 | Deploy | [Railway](https://railway.com/) |
-
-## ⚙️ Estado
-
-🚧 **En construcción.** El plan completo de implementación está siendo ejecutado paso a paso. Sigue el progreso en los [commits](https://github.com/Gisus07/tasa-bcv-api/commits/main) y en los [Actions](https://github.com/Gisus07/tasa-bcv-api/actions).
-
-Cuando esté en producción, este README incluirá el enlace al endpoint público.
 
 ## 👨‍💻 Desarrollo local
 
