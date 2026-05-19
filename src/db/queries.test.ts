@@ -1,13 +1,4 @@
-// TODO: these tests need real Postgres. pg-mem 3.x doesn't expose
-// `getTypeParser`, which drizzle-orm/node-postgres invokes on every query,
-// so the in-memory adapter throws "Not supported".
-//
-// Plan: migrate to @testcontainers/postgresql in the BCV services step (Task #4),
-// where ingest tests also need a real DB for ON CONFLICT semantics.
-import { describe, it, expect, beforeEach } from 'vitest';
-import { newDb } from 'pg-mem';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import * as schema from './schema.js';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import {
   getLatest,
   getByDate,
@@ -20,46 +11,7 @@ import {
   hasActiveIngestRun,
   getLastSuccessfulRun,
 } from './queries.js';
-import type { Database } from './client.js';
-
-/**
- * Spins up an in-memory Postgres and applies the schema by hand. We mirror
- * the columns from src/db/schema.ts because pg-mem stumbles on a few corners
- * of the generated migration (multi-statement files, DESC NULLS LAST in
- * index syntax, etc.).
- */
-function freshDb(): Database {
-  const mem = newDb({ autoCreateForeignKeyIndices: true });
-  mem.public.none(`
-    CREATE TABLE rates (
-      "date" date NOT NULL,
-      "currency" varchar(3) NOT NULL,
-      "rate" numeric(18, 8) NOT NULL,
-      "source" varchar(8) DEFAULT 'BCV' NOT NULL,
-      "source_file" text NOT NULL,
-      "published_at" date,
-      "is_propagated" boolean DEFAULT false NOT NULL,
-      "propagated_from" date,
-      "fetched_at" timestamp with time zone DEFAULT now() NOT NULL,
-      "updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-      PRIMARY KEY ("date", "currency")
-    );
-
-    CREATE TABLE ingest_runs (
-      "id" serial PRIMARY KEY,
-      "job_type" varchar(16) NOT NULL,
-      "started_at" timestamp with time zone DEFAULT now() NOT NULL,
-      "finished_at" timestamp with time zone,
-      "status" varchar(16) NOT NULL,
-      "rows_upserted" integer DEFAULT 0 NOT NULL,
-      "files_fetched" integer DEFAULT 0 NOT NULL,
-      "error_message" text
-    );
-  `);
-  const { Pool } = mem.adapters.createPg();
-  const pool = new Pool();
-  return drizzle(pool, { schema }) as Database;
-}
+import { clearTables, startTestDb, stopTestDb, type TestDb } from '../__tests__/testcontainer.helper.js';
 
 const USD = 'USD' as const;
 const EUR = 'EUR' as const;
@@ -89,78 +41,104 @@ const eur14 = {
   sourceFile: '2_1_2b26_otrasmonedas.xls',
 };
 
-describe.skip('queries (requires real Postgres — migrate to testcontainers)', () => {
-  let db: Database;
-  beforeEach(() => {
-    db = freshDb();
+describe('queries (real Postgres via testcontainers)', () => {
+  let env: TestDb;
+
+  beforeAll(async () => {
+    env = await startTestDb();
+  }, 60_000);
+
+  afterAll(async () => {
+    await stopTestDb();
+  }, 30_000);
+
+  beforeEach(async () => {
+    await clearTables(env.db);
   });
 
-  it('upserts a batch and returns the count', async () => {
-    const inserted = await upsertRates(db, [usd14, usd15, eur14]);
-    // pg-mem reports 0 affected on its insert path; we still expect the data to be there.
-    expect(inserted).toBeGreaterThanOrEqual(0);
+  it('upserts a batch and returns the number of rows affected', async () => {
+    const inserted = await upsertRates(env.db, [usd14, usd15, eur14]);
+    expect(inserted).toBe(3);
 
-    const fetched = await getByDate(db, '2026-05-14', USD);
+    const fetched = await getByDate(env.db, '2026-05-14', USD);
     expect(fetched?.rate).toBe('510.78730000');
     expect(fetched?.currency).toBe('USD');
   });
 
   it('getLatest returns the most recent row for the requested currency', async () => {
-    await upsertRates(db, [usd14, usd15, usd18, eur14]);
+    await upsertRates(env.db, [usd14, usd15, usd18, eur14]);
 
-    const latestUsd = await getLatest(db, USD);
+    const latestUsd = await getLatest(env.db, USD);
     expect(latestUsd?.date).toBe('2026-05-18');
 
-    const latestEur = await getLatest(db, EUR);
+    const latestEur = await getLatest(env.db, EUR);
     expect(latestEur?.date).toBe('2026-05-14');
   });
 
   it('getByDate returns undefined when no row exists', async () => {
-    await upsertRates(db, [usd14]);
-    expect(await getByDate(db, '2026-05-15', USD)).toBeUndefined();
-    expect(await getByDate(db, '2026-05-14', EUR)).toBeUndefined();
+    await upsertRates(env.db, [usd14]);
+    expect(await getByDate(env.db, '2026-05-15', USD)).toBeUndefined();
+    expect(await getByDate(env.db, '2026-05-14', EUR)).toBeUndefined();
   });
 
   it('getRange filters by date window and optionally by currency', async () => {
-    await upsertRates(db, [usd14, usd15, usd18, eur14]);
+    await upsertRates(env.db, [usd14, usd15, usd18, eur14]);
 
-    const usdRange = await getRange(db, '2026-05-14', '2026-05-15', USD);
+    const usdRange = await getRange(env.db, '2026-05-14', '2026-05-15', USD);
     expect(usdRange.map((r) => r.date)).toEqual(['2026-05-14', '2026-05-15']);
 
-    const all = await getRange(db, '2026-05-14', '2026-05-18');
+    const all = await getRange(env.db, '2026-05-14', '2026-05-18');
     // 3 USD + 1 EUR rows
     expect(all.length).toBe(4);
   });
 
   it('getLastBefore returns the most recent row strictly before a date', async () => {
-    await upsertRates(db, [usd14, usd15, usd18]);
-    const result = await getLastBefore(db, '2026-05-18', USD);
+    await upsertRates(env.db, [usd14, usd15, usd18]);
+    const result = await getLastBefore(env.db, '2026-05-18', USD);
     expect(result?.date).toBe('2026-05-15');
   });
 
   it('getEarliestDate returns the smallest date for a currency', async () => {
-    await upsertRates(db, [usd14, usd15, usd18, eur14]);
-    expect(await getEarliestDate(db, USD)).toBe('2026-05-14');
-    expect(await getEarliestDate(db, EUR)).toBe('2026-05-14');
+    await upsertRates(env.db, [usd14, usd15, usd18, eur14]);
+    expect(await getEarliestDate(env.db, USD)).toBe('2026-05-14');
+    expect(await getEarliestDate(env.db, EUR)).toBe('2026-05-14');
+  });
+
+  it('upsertRates deduplicates intra-batch and is idempotent across runs', async () => {
+    // Same (date, currency) appearing twice — must not crash ON CONFLICT.
+    const first = await upsertRates(env.db, [usd14, { ...usd14, rate: '510.99999999' }]);
+    expect(first).toBeGreaterThan(0);
+    const stored = await getByDate(env.db, '2026-05-14', USD);
+    expect(stored?.rate).toBe('510.99999999'); // last wins
+
+    // Re-running with the same values should be a no-op for the row count.
+    const second = await upsertRates(env.db, [{ ...usd14, rate: '510.99999999' }]);
+    expect(second).toBe(0);
   });
 
   it('records an ingest run lifecycle', async () => {
-    const id = await startIngestRun(db, 'daily');
+    const id = await startIngestRun(env.db, 'daily');
     expect(typeof id).toBe('number');
 
-    expect(await getLastSuccessfulRun(db)).toBeUndefined();
+    expect(await getLastSuccessfulRun(env.db)).toBeUndefined();
 
-    await completeIngestRun(db, id, 'ok', 12, 2);
-    const last = await getLastSuccessfulRun(db);
+    await completeIngestRun(env.db, id, 'ok', 12, 2);
+    const last = await getLastSuccessfulRun(env.db);
     expect(last?.status).toBe('ok');
     expect(last?.rowsUpserted).toBe(12);
     expect(last?.filesFetched).toBe(2);
   });
 
-  // make_interval is stubbed in pg-mem, so this test only checks the happy path.
-  it('hasActiveIngestRun reports running runs', async () => {
-    await startIngestRun(db, 'daily');
-    const active = await hasActiveIngestRun(db, 30);
-    expect(typeof active).toBe('boolean');
+  it('hasActiveIngestRun reports running runs within the window', async () => {
+    await startIngestRun(env.db, 'daily');
+    expect(await hasActiveIngestRun(env.db, 30)).toBe(true);
+
+    // After completing it, should report false again.
+    const id = await startIngestRun(env.db, 'manual');
+    await completeIngestRun(env.db, id, 'ok', 0, 0);
+    // The first one is still running — adjust: clear and re-test the
+    // negative case in isolation.
+    await clearTables(env.db);
+    expect(await hasActiveIngestRun(env.db, 30)).toBe(false);
   });
 });

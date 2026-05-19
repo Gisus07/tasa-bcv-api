@@ -106,9 +106,11 @@ export async function upsertRates(d: Database, batch: NewRate[]): Promise<number
     })
     .returning({ date: rates.date });
 
-  // Return the original batch size so callers see how many rows were
-  // *intended*; deduplication is a transport-layer detail.
-  return inserted.length > 0 ? inserted.length : deduped.length;
+  // `inserted.length` is the number of rows ON CONFLICT actually affected:
+  // brand-new rows plus rows whose rate or propagation flag changed. Rows
+  // that already had the same value are skipped by `setWhere` and do not
+  // appear in the result — that is the desired idempotent behaviour.
+  return inserted.length;
 }
 
 export async function startIngestRun(
