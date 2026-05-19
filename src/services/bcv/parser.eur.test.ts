@@ -5,6 +5,7 @@ import { parseEurWorkbook } from './parser.eur.js';
 
 const fixture = readFileSync(resolve('fixtures/2_1_2b26_otrasmonedas.xls'));
 const fixture2021 = readFileSync(resolve('fixtures/2_1_2d21_otrasmonedas.xls'));
+const fixture2020 = readFileSync(resolve('fixtures/2_1_2d20_otrasmonedas.xls'));
 
 describe('parseEurWorkbook', () => {
   const records = parseEurWorkbook(fixture, '2_1_2b26_otrasmonedas.xls');
@@ -65,5 +66,21 @@ describe('parseEurWorkbook (legacy 2021 layout with leading blank column)', () =
     expect(target?.rate).toBe('5.21156980');
     expect(target?.sourceFile).toBe('2_1_2d21_otrasmonedas.xls#30122021');
     expect(target?.publishedAt).toBe('2021-12-30');
+  });
+});
+
+describe('parseEurWorkbook (2020 layout: "Bs./M.E" without trailing period)', () => {
+  it('parses Q4 2020 despite the anchor missing its trailing period', () => {
+    // R 7 in these sheets is "Bs./M.E" (no period). Older 2021+ files spell it
+    // "Bs./M.E." with a period. The anchor regex must accept either spelling.
+    const records = parseEurWorkbook(fixture2020, '2_1_2d20_otrasmonedas.xls');
+    expect(records.length).toBeGreaterThan(40);
+
+    // Spot-check 23/10/2020 → Fecha Valor 26/10/2020 → EUR Venta 547555.99981734.
+    const target = records.find((r) => r.date === '2020-10-26');
+    expect(target).toBeDefined();
+    expect(target?.currency).toBe('EUR');
+    expect(target?.rate).toBe('547555.99981734');
+    expect(target?.publishedAt).toBe('2020-10-23');
   });
 });

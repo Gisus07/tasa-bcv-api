@@ -148,7 +148,9 @@ function findVentaBsColumn(rows: unknown[][]): number {
     const row = rows[r]!;
     for (let c = 0; c < row.length; c++) {
       const cell = row[c];
-      if (typeof cell === 'string' && /^\s*Bs\.\s*\/\s*M\.E\.\s*$/i.test(cell)) {
+      // The trailing period after "M.E" is present from 2021 onward but
+      // omitted in 2020 files. Match both spellings.
+      if (typeof cell === 'string' && /^\s*Bs\.\s*\/\s*M\.E\.?\s*$/i.test(cell)) {
         bsAnchorCol = c;
         bsAnchorRow = r;
         break;
