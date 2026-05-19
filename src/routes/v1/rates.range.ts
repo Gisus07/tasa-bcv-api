@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
+import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { RangeQuery, RangeResponse } from '../../schemas/rates.js';
 import { getRange } from '../../services/rates.service.js';
@@ -12,6 +13,11 @@ const route = createRoute({
   summary: 'Tasas históricas dentro de un rango (máx 365 días)',
   description:
     'Devuelve cada registro disponible dentro de `[from, to]`, opcionalmente filtrado por moneda. Los días propagados se incluyen con `is_propagated: true`.',
+  ...({
+    'x-codeSamples': codeSamplesFor({
+      path: '/v1/rates/range?from=2026-05-01&to=2026-05-19&currency=USD',
+    }),
+  } as Record<string, unknown>),
   request: { query: RangeQuery },
   responses: {
     200: {

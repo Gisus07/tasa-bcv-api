@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
+import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { SingleCurrencyQuery, SingleRate } from '../../schemas/rates.js';
 import { getSingleCurrency } from '../../services/rates.service.js';
@@ -10,6 +11,7 @@ const route = createRoute({
   path: '/rates/eur',
   tags: ['rates'],
   summary: 'Tasa EUR (la más reciente por defecto, o para una fecha dada)',
+  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/eur' }) } as Record<string, unknown>),
   request: { query: SingleCurrencyQuery },
   responses: {
     200: {

@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
+import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { LastUpdatedResponse } from '../../schemas/rates.js';
 import { getLastUpdated } from '../../services/rates.service.js';
 
@@ -11,6 +12,7 @@ const route = createRoute({
   summary: 'Timestamp de la última ingesta exitosa',
   description:
     'Útil para monitoreo. Si este valor no avanza durante >36h, el job diario probablemente está fallando.',
+  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/last-updated' }) } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Detalles del último run exitoso',

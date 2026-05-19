@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute } from '@hono/zod-openapi';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
+import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { ErrorResponse } from '../../schemas/common.js';
 import { ByDateParams, RatesPair } from '../../schemas/rates.js';
 import { getPairByDate } from '../../services/rates.service.js';
@@ -12,6 +13,7 @@ const route = createRoute({
   summary: 'Tasas USD y EUR para una fecha específica',
   description:
     'Devuelve ambas monedas para la fecha indicada. Fines de semana y feriados se devuelven con `propagated_currencies` indicando qué monedas se heredaron del último día hábil.',
+  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/2026-05-14' }) } as Record<string, unknown>),
   request: { params: ByDateParams },
   responses: {
     200: {

@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { db } from '../../db/client.js';
+import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { runDailyUpdate } from '../../jobs/dailyUpdate.js';
 import { logger } from '../../logger.js';
 import { adminAuth } from '../../middleware/adminAuth.js';
@@ -14,6 +15,14 @@ const route = createRoute({
   summary: 'Dispara una ingesta diaria manualmente',
   description:
     'Endpoint protegido con bearer token que fuerza un daily-update sin esperar al cron. Útil cuando el run programado falla o para refrescar tras un deploy. Devuelve 202 porque el job corre en background.',
+  ...({
+    'x-codeSamples': codeSamplesFor({
+      path: '/v1/admin/trigger-ingest',
+      method: 'POST',
+      bearer: true,
+      body: { await: false },
+    }),
+  } as Record<string, unknown>),
   security: [{ bearerAuth: [] }],
   request: {
     body: {
