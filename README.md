@@ -1,51 +1,127 @@
 # tasa-bcv-api
 
-> API REST pública y abierta para consultar el histórico oficial de tasas de cambio USD/EUR publicadas por el Banco Central de Venezuela (BCV).
+> API REST pública y gratuita con el histórico oficial de tasas USD/VES y EUR/VES del Banco Central de Venezuela.
 
-[![status](https://img.shields.io/badge/status-in%20development-yellow)](#)
-[![license](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-[![previous version](https://img.shields.io/badge/v0--legacy-Telegram%20Bot-lightgrey)](https://github.com/jrodrigues-dev/bot-intervencion-bcv/tree/v0-legacy-python-bot)
+[![CI](https://github.com/Gisus07/tasa-bcv-api/actions/workflows/ci.yml/badge.svg)](https://github.com/Gisus07/tasa-bcv-api/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/Gisus07/tasa-bcv-api?color=blue)](LICENSE)
+[![Node](https://img.shields.io/badge/node-22%20LTS-brightgreen)](https://nodejs.org/)
+[![Last commit](https://img.shields.io/github/last-commit/Gisus07/tasa-bcv-api)](https://github.com/Gisus07/tasa-bcv-api/commits/main)
+[![Legacy bot](https://img.shields.io/badge/v0--legacy-Telegram%20Bot-lightgrey)](https://github.com/Gisus07/tasa-bcv-api/tree/v0-legacy-python-bot)
 
-## ¿Qué es esto?
+---
 
-Venezuela no cuenta con una API oficial del BCV para consultar las tasas de cambio oficiales del Bolívar frente al USD y al EUR. Cada equipo de desarrollo termina escribiendo su propio scraper, lo cual:
+## ¿Por qué existe?
 
-- Duplica trabajo en toda la industria local.
-- Se rompe cada vez que el BCV cambia algo en su sitio.
-- No expone histórico, solo la tasa del día.
+Venezuela no tiene una API oficial del BCV. Cada equipo termina escribiendo su propio scraper para obtener la tasa del Bolívar contra USD y EUR, lo que:
 
-Este proyecto resuelve eso ofreciendo una **API REST pública, gratuita y mantenida** que sirve:
+- **Duplica trabajo** en toda la industria local de software.
+- **Se rompe** cada vez que el BCV cambia algo en su HTML.
+- **No expone histórico** — solo la tasa del día.
+- **Bloquea integraciones** con e-commerce, calculadoras de remesas, ERPs, exchanges, etc.
 
-- Tasa oficial del día (USD y EUR).
-- Tasa de cualquier fecha histórica (desde 2016 para USD, 2024 para EUR).
-- Rangos históricos para análisis.
-- Documentación OpenAPI/Swagger.
+Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve eso de una vez.
 
-La fuente son los archivos oficiales que el BCV publica en su sección de estadísticas — no scraping del HTML cambiante.
+## 🚀 Lo que ofrece
 
-## Estado
+| Capacidad | Detalle |
+|---|---|
+| Tasa del día | USD/VES y EUR/VES actualizadas diariamente a las 00:00 Caracas |
+| Histórico completo | USD desde 2016, EUR desde 2024 (los archivos oficiales del BCV) |
+| Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
+| Sin scraping | Las fuentes son los XLS oficiales del BCV + scraping mínimo de la homepage para la tasa del día |
+| Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil con flag `is_propagated: true` |
+| OpenAPI 3.1 | Documentación interactiva con [Scalar](https://scalar.com/) |
+| Rate limit razonable | 30 req/min por IP, suficiente para casi cualquier uso |
 
-🚧 **En construcción.** Este repo está siendo reconstruido desde cero a partir de la base de un bot de Telegram previo (ver sección "Versión anterior").
+## 📡 Endpoints (v1)
 
-Para seguir el progreso, ver el [plan de implementación](https://github.com/jrodrigues-dev/bot-intervencion-bcv).
+| Método | Path | Descripción |
+|---|---|---|
+| `GET` | `/health` | Liveness + DB check |
+| `GET` | `/docs` | Documentación interactiva (Scalar) |
+| `GET` | `/openapi.json` | Especificación OpenAPI 3.1 |
+| `GET` | `/v1/rates/latest` | Últimas tasas USD y EUR |
+| `GET` | `/v1/rates/{date}` | Tasas USD y EUR para una fecha (`YYYY-MM-DD`) |
+| `GET` | `/v1/rates/range?from&to&currency` | Rango histórico (max 365 días) |
+| `GET` | `/v1/rates/usd?date=` | Solo USD (latest si omites `date`) |
+| `GET` | `/v1/rates/eur?date=` | Solo EUR |
+| `GET` | `/v1/last-updated` | Timestamp del último ingest exitoso |
+| `POST` | `/v1/admin/trigger-ingest` | Dispara ingest manual (requiere bearer token) |
 
-## Stack
+## 🛠️ Stack
 
-- TypeScript + Hono sobre Node.js 22 LTS
-- PostgreSQL 16 + Drizzle ORM
-- OpenAPI auto-generado con `@hono/zod-openapi` + Scalar UI
-- Deploy en Railway
+| Capa | Tecnología |
+|---|---|
+| Runtime | Node.js 22 LTS |
+| Framework | [Hono](https://hono.dev/) + [`@hono/zod-openapi`](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) |
+| Validación | [Zod](https://zod.dev/) |
+| DB | PostgreSQL 16 + [Drizzle ORM](https://orm.drizzle.team/) |
+| HTTP / Scraping | [undici](https://undici.nodejs.org/) + [cheerio](https://cheerio.js.org/) |
+| Parseo XLS | [SheetJS](https://sheetjs.com/) |
+| Scheduling | [node-cron](https://github.com/node-cron/node-cron) (TZ America/Caracas) |
+| Rate limit | [`hono-rate-limiter`](https://github.com/rhinobase/hono-rate-limiter) |
+| Logger | [pino](https://getpino.io/) |
+| Docs UI | [Scalar](https://scalar.com/) |
+| Tests | [vitest](https://vitest.dev/) |
+| Deploy | [Railway](https://railway.com/) |
 
-## Versión anterior
+## ⚙️ Estado
 
-Este repo nació como un **bot de Telegram** que notificaba intervenciones cambiarias del BCV. Operó hasta agosto de 2025 cuando cumplió su propósito original (proyecto académico). El código completo del bot está preservado:
+🚧 **En construcción.** El plan completo de implementación está siendo ejecutado paso a paso. Sigue el progreso en los [commits](https://github.com/Gisus07/tasa-bcv-api/commits/main) y en los [Actions](https://github.com/Gisus07/tasa-bcv-api/actions).
 
-- Tag: [`v0-legacy-python-bot`](https://github.com/jrodrigues-dev/bot-intervencion-bcv/tree/v0-legacy-python-bot)
-- Branch: `legacy/python-bot`
-- Carpeta: [`legacy/python-bot/`](./legacy/python-bot/)
+Cuando esté en producción, este README incluirá el enlace al endpoint público.
 
-## Licencia
+## 👨‍💻 Desarrollo local
 
-[AGPL-3.0](LICENSE). El código es libre. Si despliegas una modificación como servicio público, debes publicar tus cambios.
+Requisitos: Node 22+, pnpm, Docker (para Postgres local).
 
-No estamos afiliados al Banco Central de Venezuela.
+```bash
+# Setup
+git clone https://github.com/Gisus07/tasa-bcv-api.git
+cd tasa-bcv-api
+pnpm install
+cp .env.example .env  # editar DATABASE_URL y ADMIN_TOKEN
+
+# Postgres local con Docker
+docker run -d --name tasa-bcv-pg -p 5432:5432 \
+  -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=tasa_bcv_api postgres:16
+
+# Migraciones + backfill inicial
+pnpm db:migrate
+pnpm jobs:backfill
+
+# Run
+pnpm dev
+```
+
+Comandos útiles:
+
+```bash
+pnpm typecheck          # tsc --noEmit
+pnpm test               # vitest run
+pnpm jobs:backfill      # carga histórica USD + EUR
+pnpm jobs:daily         # ingest manual del día
+pnpm build              # compila a dist/
+```
+
+## 📜 Versión anterior
+
+Este repo nació como un **bot de Telegram** ([@IntervencionBCVbot](https://t.me/IntervencionBCVbot)) que notificaba intervenciones cambiarias del BCV. Operó desde su creación como proyecto académico hasta **agosto de 2025**, cuando cumplió su propósito.
+
+El código del bot está preservado en:
+
+- **Tag**: [`v0-legacy-python-bot`](https://github.com/Gisus07/tasa-bcv-api/releases/tag/v0-legacy-python-bot)
+- **Branch**: [`legacy/python-bot`](https://github.com/Gisus07/tasa-bcv-api/tree/legacy/python-bot)
+- **Carpeta**: [`legacy/python-bot/`](./legacy/python-bot/) (en `main`)
+
+## 🤝 Contribuciones
+
+Issues y PRs son bienvenidos. Lee [CONTRIBUTING.md](.github/CONTRIBUTING.md) si vas a abrir un PR.
+
+Si encuentras una vulnerabilidad de seguridad, no abras un issue público — lee [SECURITY.md](.github/SECURITY.md).
+
+## 📄 Licencia
+
+Distribuido bajo [AGPL-3.0-or-later](LICENSE). El código es libre. Si despliegas una versión modificada como servicio público, debes publicar tus cambios bajo la misma licencia.
+
+> No estamos afiliados al Banco Central de Venezuela. Las tasas son obtenidas de los datos oficiales que el BCV publica en su sitio web.
