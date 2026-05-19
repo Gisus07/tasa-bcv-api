@@ -85,8 +85,7 @@ describe('apiKeys.service with real Postgres', () => {
       await bumpUsage(env.db, record.id);
       await bumpUsage(env.db, record.id);
 
-      const after = await findActiveByPlainKey(env.db, '__nope__');
-      // Re-fetch via the listKeys path to keep this test independent of internal queries.
+      // Re-fetch via listKeys to keep this test independent of internal queries.
       const all = await listKeys(env.db);
       const updated = all.find((k) => k.id === record.id)!;
       expect(updated.requestCount).toBe(3);
