@@ -9,17 +9,17 @@ const route = createRoute({
   method: 'get',
   path: '/rates/range',
   tags: ['rates'],
-  summary: 'Historical rates within a date range (max 365 days)',
+  summary: 'Tasas históricas dentro de un rango (máx 365 días)',
   description:
-    'Returns every available row within `[from, to]`, optionally filtered by currency. Propagated days are included with `is_propagated: true`.',
+    'Devuelve cada registro disponible dentro de `[from, to]`, opcionalmente filtrado por moneda. Los días propagados se incluyen con `is_propagated: true`.',
   request: { query: RangeQuery },
   responses: {
     200: {
-      description: 'Rates in the requested window',
+      description: 'Tasas dentro del rango solicitado',
       content: { 'application/json': { schema: RangeResponse } },
     },
     400: {
-      description: 'Invalid range, range too large, or date out of bounds',
+      description: 'Rango inválido, demasiado grande, o fecha fuera de límites',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

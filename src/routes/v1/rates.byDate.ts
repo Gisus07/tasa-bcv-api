@@ -9,21 +9,21 @@ const route = createRoute({
   method: 'get',
   path: '/rates/{date}',
   tags: ['rates'],
-  summary: 'USD and EUR rates for a specific date',
+  summary: 'Tasas USD y EUR para una fecha específica',
   description:
-    'Returns both currencies for the given date. Weekends and holidays return propagated rows (`is_propagated: true`) inherited from the previous business day.',
+    'Devuelve ambas monedas para la fecha indicada. Fines de semana y feriados se devuelven con `propagated_currencies` indicando qué monedas se heredaron del último día hábil.',
   request: { params: ByDateParams },
   responses: {
     200: {
-      description: 'Rates for the requested date',
+      description: 'Tasas para la fecha solicitada',
       content: { 'application/json': { schema: RatesPair } },
     },
     400: {
-      description: 'Date out of range or before history',
+      description: 'Fecha fuera de rango o anterior al histórico disponible',
       content: { 'application/json': { schema: ErrorResponse } },
     },
     404: {
-      description: 'No rates for that date (data not ingested yet)',
+      description: 'No hay tasas para esa fecha (datos aún no ingresados)',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

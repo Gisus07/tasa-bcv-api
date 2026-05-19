@@ -22,7 +22,7 @@ export function defaultZodHook(result: ZodHookResult, c: Context): Response | un
   if (!result.success) {
     return c.json(
       {
-        error: 'Invalid input',
+        error: 'Entrada inválida',
         code: 'VALIDATION_ERROR',
         details: {
           issues: result.error.issues.map((issue) => ({

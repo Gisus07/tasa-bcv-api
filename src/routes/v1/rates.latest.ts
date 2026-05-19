@@ -9,16 +9,16 @@ const route = createRoute({
   method: 'get',
   path: '/rates/latest',
   tags: ['rates'],
-  summary: 'Most recent USD and EUR rates',
+  summary: 'Últimas tasas USD y EUR',
   description:
-    'Returns the most recent published rate for USD and EUR. Each currency may have its own date if one was updated more recently.',
+    'Devuelve la tasa publicada más reciente para USD y EUR. Cada moneda puede tener su propia fecha si una se actualizó después que la otra.',
   responses: {
     200: {
-      description: 'Latest USD and EUR rates',
+      description: 'Últimas tasas USD y EUR',
       content: { 'application/json': { schema: RatesPair } },
     },
     404: {
-      description: 'No rates available yet (run backfill or daily)',
+      description: 'Aún no hay tasas disponibles (ejecutar backfill o daily)',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

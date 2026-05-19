@@ -45,12 +45,61 @@ describe('createApp', () => {
     }
   });
 
-  it('serves the Scalar UI at /docs', async () => {
+  it('serves the Scalar UI at /docs (Spanish by default)', async () => {
     const app = createApp({ disableRateLimit: true });
     const res = await app.request('/docs');
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html.toLowerCase()).toContain('scalar');
+  });
+
+  it('serves an English Scalar UI at /docs/en', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/docs/en');
+    expect(res.status).toBe(200);
+  });
+
+  it('redirects /docs → /docs/en when Accept-Language prefers English', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/docs', {
+      headers: { 'Accept-Language': 'en-US,en;q=0.9' },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/docs/en');
+  });
+
+  it('honors ?lang=es over Accept-Language', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/docs?lang=es', {
+      headers: { 'Accept-Language': 'en-US,en;q=0.9' },
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('exposes a translated /openapi-en.json with the English info description', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/openapi-en.json');
+    expect(res.status).toBe(200);
+    const spec = (await res.json()) as {
+      info: { description: string };
+      tags: { name: string; description: string }[];
+    };
+    expect(spec.info.description).toContain('Public REST API');
+    const ratesTag = spec.tags.find((t) => t.name === 'rates');
+    expect(ratesTag?.description).toBe('Exchange rate queries');
+  });
+
+  it('/openapi.json keeps Spanish descriptions', async () => {
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/openapi.json');
+    expect(res.status).toBe(200);
+    const spec = (await res.json()) as {
+      info: { description: string };
+      tags: { name: string; description: string }[];
+    };
+    expect(spec.info.description).toContain('API REST pública');
+    const ratesTag = spec.tags.find((t) => t.name === 'rates');
+    expect(ratesTag?.description).toBe('Consultas de tasas de cambio');
   });
 
   it('rejects unknown routes with 404', async () => {

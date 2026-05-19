@@ -8,12 +8,12 @@ const route = createRoute({
   method: 'get',
   path: '/last-updated',
   tags: ['system'],
-  summary: 'Timestamp of the last successful ingest',
+  summary: 'Timestamp de la última ingesta exitosa',
   description:
-    'Useful for monitoring. If this stops advancing for >36h, the daily job has likely broken.',
+    'Útil para monitoreo. Si este valor no avanza durante >36h, el job diario probablemente está fallando.',
   responses: {
     200: {
-      description: 'Last successful run details',
+      description: 'Detalles del último run exitoso',
       content: { 'application/json': { schema: LastUpdatedResponse } },
     },
   },

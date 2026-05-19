@@ -5,6 +5,7 @@ import { cors } from 'hono/cors';
 import { errorHandler } from './middleware/errorHandler.js';
 import { ipRateLimit } from './middleware/rateLimit.js';
 import { defaultZodHook } from './middleware/zodHook.js';
+import { ES_TO_EN, translateSpec } from './i18n/translations.js';
 import { health } from './routes/health.js';
 import { docs } from './routes/docs.js';
 import { buildV1 } from './routes/v1/index.js';
@@ -114,28 +115,53 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
   app.route('/v1', buildV1());
   app.route('/', docs);
 
-  // OpenAPI spec
+  // OpenAPI spec (idioma por defecto: español)
   app.doc('/openapi.json', {
     openapi: '3.1.0',
     info: {
       title: 'tasa-bcv-api',
       version: '0.1.0',
       description:
-        'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
+        'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 00:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.',
       license: {
         name: 'AGPL-3.0-or-later',
         url: 'https://www.gnu.org/licenses/agpl-3.0.html',
       },
     },
     tags: [
-      { name: 'rates', description: 'Exchange rate queries' },
-      { name: 'system', description: 'Health and metadata' },
-      { name: 'admin', description: 'Administrative endpoints (require bearer token)' },
+      { name: 'rates', description: 'Consultas de tasas de cambio' },
+      { name: 'system', description: 'Estado y metadatos' },
+      { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
     ],
   });
   app.openAPIRegistry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',
     scheme: 'bearer',
+  });
+
+  // Versión en inglés del spec — generada en runtime aplicando el mapping
+  // ES → EN sobre el JSON ya construido. Mantiene una sola fuente de verdad
+  // (el código está en español) y traduce solo los strings visibles.
+  app.get('/openapi-en.json', (c) => {
+    const spec = app.getOpenAPIDocument({
+      openapi: '3.1.0',
+      info: {
+        title: 'tasa-bcv-api',
+        version: '0.1.0',
+        description:
+          'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
+        license: {
+          name: 'AGPL-3.0-or-later',
+          url: 'https://www.gnu.org/licenses/agpl-3.0.html',
+        },
+      },
+      tags: [
+        { name: 'rates', description: 'Exchange rate queries' },
+        { name: 'system', description: 'Health and metadata' },
+        { name: 'admin', description: 'Administrative endpoints (require bearer token)' },
+      ],
+    });
+    return c.json(translateSpec(spec, ES_TO_EN));
   });
 
   app.onError(errorHandler);

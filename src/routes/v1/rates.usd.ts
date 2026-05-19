@@ -9,19 +9,19 @@ const route = createRoute({
   method: 'get',
   path: '/rates/usd',
   tags: ['rates'],
-  summary: 'USD rate (latest by default, or for a given date)',
+  summary: 'Tasa USD (la más reciente por defecto, o para una fecha dada)',
   request: { query: SingleCurrencyQuery },
   responses: {
     200: {
-      description: 'USD rate',
+      description: 'Tasa USD',
       content: { 'application/json': { schema: SingleRate } },
     },
     400: {
-      description: 'Date out of range or before history',
+      description: 'Fecha fuera de rango o anterior al histórico disponible',
       content: { 'application/json': { schema: ErrorResponse } },
     },
     404: {
-      description: 'No USD rate found',
+      description: 'No se encontró tasa USD',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

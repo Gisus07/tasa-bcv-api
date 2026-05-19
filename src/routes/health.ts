@@ -9,14 +9,14 @@ const route = createRoute({
   method: 'get',
   path: '/health',
   tags: ['system'],
-  summary: 'Liveness + database reachability check',
+  summary: 'Comprobación de disponibilidad de la API y conectividad con la base de datos',
   responses: {
     200: {
-      description: 'API and database are reachable',
+      description: 'La API y la base de datos están disponibles',
       content: { 'application/json': { schema: HealthResponse } },
     },
     503: {
-      description: 'Database is unreachable',
+      description: 'La base de datos no está disponible',
       content: { 'application/json': { schema: HealthResponse } },
     },
   },

@@ -11,9 +11,9 @@ const route = createRoute({
   method: 'post',
   path: '/admin/trigger-ingest',
   tags: ['admin'],
-  summary: 'Manually trigger a daily ingest',
+  summary: 'Dispara una ingesta diaria manualmente',
   description:
-    'Bearer-authenticated endpoint that forces a daily-update run without waiting for the cron. Useful when the scheduled run failed or to refresh after a deploy. Returns 202 because the job runs in background.',
+    'Endpoint protegido con bearer token que fuerza un daily-update sin esperar al cron. Útil cuando el run programado falla o para refrescar tras un deploy. Devuelve 202 porque el job corre en background.',
   security: [{ bearerAuth: [] }],
   request: {
     body: {
@@ -22,7 +22,7 @@ const route = createRoute({
           schema: z
             .object({
               await: z.boolean().optional().default(false).openapi({
-                description: 'When true, wait for the ingest to finish before responding.',
+                description: 'Cuando es true, espera a que la ingesta termine antes de responder.',
               }),
             })
             .openapi('TriggerIngestRequest'),
@@ -33,11 +33,11 @@ const route = createRoute({
   },
   responses: {
     202: {
-      description: 'Job started (or finished, if `await=true`)',
+      description: 'Job iniciado (o finalizado, si `await=true`)',
       content: { 'application/json': { schema: TriggerIngestResponse } },
     },
     401: {
-      description: 'Missing or invalid admin token',
+      description: 'Token admin faltante o inválido',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

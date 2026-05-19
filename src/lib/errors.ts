@@ -42,7 +42,7 @@ export class InvalidDateFormatError extends AppError {
     super(
       'INVALID_DATE_FORMAT',
       400,
-      `Invalid date format: "${value}" (expected YYYY-MM-DD)`,
+      `Formato de fecha inválido: "${value}" (se esperaba YYYY-MM-DD)`,
       { value },
     );
   }
@@ -53,7 +53,7 @@ export class DateOutOfRangeError extends AppError {
     super(
       'DATE_OUT_OF_RANGE',
       400,
-      `Date ${date} is in the future. Max allowed is ${maxDate}.`,
+      `La fecha ${date} está en el futuro. Máxima permitida: ${maxDate}.`,
       { date, maxDate },
     );
   }
@@ -64,7 +64,7 @@ export class DateBeforeHistoryError extends AppError {
     super(
       'DATE_BEFORE_HISTORY',
       400,
-      `No historical data available for ${currency} before ${minDate}. Requested: ${date}.`,
+      `No hay datos históricos para ${currency} antes de ${minDate}. Solicitado: ${date}.`,
       { date, minDate, currency },
     );
   }
@@ -75,7 +75,7 @@ export class InvalidRangeError extends AppError {
     super(
       'INVALID_RANGE',
       400,
-      `Invalid range: "from" (${from}) must be on or before "to" (${to}).`,
+      `Rango inválido: "from" (${from}) debe ser igual o anterior a "to" (${to}).`,
       { from, to },
     );
   }
@@ -86,45 +86,45 @@ export class RangeTooLargeError extends AppError {
     super(
       'RANGE_TOO_LARGE',
       400,
-      `Requested range of ${days} days exceeds the maximum of ${maxDays} days.`,
+      `El rango solicitado de ${days} días excede el máximo de ${maxDays} días.`,
       { days, maxDays },
     );
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(message = 'Resource not found') {
+  constructor(message = 'Recurso no encontrado') {
     super('NOT_FOUND', 404, message);
   }
 }
 
 export class UnauthorizedError extends AppError {
-  constructor(message = 'Missing or invalid credentials') {
+  constructor(message = 'Credenciales faltantes o inválidas') {
     super('UNAUTHORIZED', 401, message);
   }
 }
 
 export class RateLimitError extends AppError {
   constructor(retryAfterSeconds: number) {
-    super('RATE_LIMITED', 429, 'Too many requests', { retryAfterSeconds });
+    super('RATE_LIMITED', 429, 'Demasiadas solicitudes', { retryAfterSeconds });
   }
 }
 
 export class UpstreamFormatError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super('UPSTREAM_FORMAT', 502, `BCV upstream format issue: ${message}`, details);
+    super('UPSTREAM_FORMAT', 502, `Problema de formato en la fuente del BCV: ${message}`, details);
   }
 }
 
 export class UpstreamUnavailableError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super('UPSTREAM_UNAVAILABLE', 502, `BCV upstream unavailable: ${message}`, details);
+    super('UPSTREAM_UNAVAILABLE', 502, `Fuente del BCV no disponible: ${message}`, details);
   }
 }
 
 export class DatabaseDownError extends AppError {
   constructor(cause?: unknown) {
-    super('DB_DOWN', 503, 'Database is unreachable', { cause: String(cause ?? '') });
+    super('DB_DOWN', 503, 'Base de datos no disponible', { cause: String(cause ?? '') });
   }
 }
 
@@ -144,6 +144,6 @@ export function toErrorResponse(err: unknown): {
   }
   return {
     status: 500,
-    body: { error: 'Internal server error', code: 'INTERNAL' },
+    body: { error: 'Error interno del servidor', code: 'INTERNAL' },
   };
 }

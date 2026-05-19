@@ -33,6 +33,7 @@ describe('AppError subclasses', () => {
     expect(err.code).toBe('DATE_BEFORE_HISTORY');
     expect(err.message).toContain('USD');
     expect(err.message).toContain('2016-01-04');
+    expect(err.message).toContain('2015-01-01');
   });
 
   it('InvalidRangeError preserves bounds', () => {
@@ -80,7 +81,7 @@ describe('toErrorResponse', () => {
     const { status, body } = toErrorResponse(new Error('boom'));
     expect(status).toBe(500);
     expect(body.code).toBe('INTERNAL');
-    expect(body.error).toBe('Internal server error');
+    expect(body.error).toBe('Error interno del servidor');
     expect((body as { details?: unknown }).details).toBeUndefined();
   });
 

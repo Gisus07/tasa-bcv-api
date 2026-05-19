@@ -21,8 +21,8 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
   if (err instanceof ZodError) {
     return c.json(
       {
-        error: 'Invalid input',
-        code: 'INVALID_INPUT' satisfies ErrorCode | 'INVALID_INPUT',
+        error: 'Entrada inválida',
+        code: 'VALIDATION_ERROR' satisfies ErrorCode,
         details: { issues: err.issues },
       },
       400,
@@ -32,7 +32,7 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
   if (err instanceof HTTPException) {
     return c.json(
       {
-        error: err.message || 'Request failed',
+        error: err.message || 'Solicitud fallida',
         code: 'INTERNAL' satisfies ErrorCode,
       },
       err.status,
@@ -42,7 +42,7 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
   // Unknown error — log full stack, return generic message.
   logger().error({ err: err instanceof Error ? { message: err.message, stack: err.stack } : err }, 'unhandled error');
   return c.json(
-    { error: 'Internal server error', code: 'INTERNAL' satisfies ErrorCode },
+    { error: 'Error interno del servidor', code: 'INTERNAL' satisfies ErrorCode },
     500,
   );
 };

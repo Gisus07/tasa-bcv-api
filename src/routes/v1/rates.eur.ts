@@ -9,19 +9,19 @@ const route = createRoute({
   method: 'get',
   path: '/rates/eur',
   tags: ['rates'],
-  summary: 'EUR rate (latest by default, or for a given date)',
+  summary: 'Tasa EUR (la más reciente por defecto, o para una fecha dada)',
   request: { query: SingleCurrencyQuery },
   responses: {
     200: {
-      description: 'EUR rate',
+      description: 'Tasa EUR',
       content: { 'application/json': { schema: SingleRate } },
     },
     400: {
-      description: 'Date out of range or before history',
+      description: 'Fecha fuera de rango o anterior al histórico disponible',
       content: { 'application/json': { schema: ErrorResponse } },
     },
     404: {
-      description: 'No EUR rate found',
+      description: 'No se encontró tasa EUR',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },
