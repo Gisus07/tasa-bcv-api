@@ -136,6 +136,19 @@ export const ES_TO_EN: Record<string, string> = {
   'El dueño de la key se auto-revoca. La key deja de funcionar de inmediato — siguientes requests con ella devuelven 401. Operación idempotente y final: una vez revocada, no se puede reactivar; hay que registrar una nueva.':
     'The key owner self-revokes. The key stops working immediately — subsequent requests with it return 401. Idempotent and final: once revoked it cannot be reactivated; a new one must be registered.',
 
+  // ===== NotFound + generic error messages =====
+  'Aún no hay tasas disponibles. Ejecuta el backfill o el job diario primero.':
+    'No rates available yet. Run the backfill or daily job first.',
+  'Recurso no encontrado': 'Resource not found',
+  'Credenciales faltantes o inválidas': 'Missing or invalid credentials',
+  'Demasiadas solicitudes': 'Too many requests',
+  'Demasiadas solicitudes. Por favor reduce el ritmo.':
+    'Too many requests. Please slow down.',
+  'Base de datos no disponible': 'Database is unreachable',
+  'Entrada inválida': 'Invalid input',
+  'Error interno del servidor': 'Internal server error',
+  'Solicitud fallida': 'Request failed',
+
   // ===== usage histogram =====
   'Histograma diario de uso de mi API key': 'Daily usage histogram for my API key',
   'Devuelve el conteo de requests por día en la ventana solicitada (default 30 días). Los días sin requests no aparecen — el cliente debe asumir 0 para los faltantes si necesita una serie completa. Ideal para gráficas de uso semanales o mensuales.':

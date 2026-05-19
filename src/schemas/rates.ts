@@ -92,16 +92,16 @@ export const RegisterKeyRequest = z
     email: z
       .string()
       .email('El email debe tener un formato válido')
-      .max(254)
+      .max(254, 'El email no puede tener más de 254 caracteres')
       .openapi({ example: 'dev@example.com' }),
     name: z
       .string()
-      .min(1)
-      .max(120)
+      .min(1, 'El nombre es obligatorio')
+      .max(120, 'El nombre no puede tener más de 120 caracteres')
       .openapi({ example: 'Ana Pérez' }),
     purpose: z
       .string()
-      .max(500)
+      .max(500, 'El propósito no puede tener más de 500 caracteres')
       .optional()
       .openapi({
         example: 'Calculadora de remesas en mi e-commerce',
@@ -200,9 +200,9 @@ export const KeyUsageResponse = z
 export const UsageQuery = z.object({
   days: z.coerce
     .number()
-    .int()
-    .min(1)
-    .max(365)
+    .int('El parámetro `days` debe ser un entero')
+    .min(1, '`days` debe ser >= 1')
+    .max(365, '`days` no puede ser mayor a 365')
     .optional()
     .default(30)
     .openapi({ example: 30, description: 'Días hacia atrás a incluir (1-365). Default 30.' }),

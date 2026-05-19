@@ -42,7 +42,9 @@ export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
   const usdRow = await getLatest(d, 'USD');
   const eurRow = await getLatest(d, 'EUR');
   if (!usdRow || !eurRow) {
-    throw new NotFoundError('No rates are available yet. Run the backfill or daily job first.');
+    throw new NotFoundError(
+      'Aún no hay tasas disponibles. Ejecuta el backfill o el job diario primero.',
+    );
   }
   const pairDate = usdRow.date > eurRow.date ? usdRow.date : eurRow.date;
   return buildPair(pairDate, usdRow, eurRow);
@@ -56,7 +58,7 @@ export async function getPairByDate(d: Database, date: string): Promise<RatesPai
   const eurRow = await getByDate(d, date, 'EUR');
   if (!usdRow || !eurRow) {
     throw new NotFoundError(
-      `No rates found for ${date}. Propagation may not have run yet for one of the currencies.`,
+      `No hay tasas para ${date}. La propagación puede no haber corrido aún para alguna de las monedas.`,
     );
   }
   return buildPair(date, usdRow, eurRow);
@@ -70,13 +72,13 @@ export async function getSingleCurrency(
 ): Promise<SingleRateOutput> {
   if (date === undefined) {
     const row = await getLatest(d, currency);
-    if (!row) throw new NotFoundError(`No ${currency} rate available yet.`);
+    if (!row) throw new NotFoundError(`Aún no hay tasa ${currency} disponible.`);
     return buildSingle(row);
   }
   await assertDateInRange(d, date, currency);
   const row = await getByDate(d, date, currency);
   if (!row) {
-    throw new NotFoundError(`No ${currency} rate found for ${date}.`);
+    throw new NotFoundError(`No se encontró tasa ${currency} para ${date}.`);
   }
   return buildSingle(row);
 }
