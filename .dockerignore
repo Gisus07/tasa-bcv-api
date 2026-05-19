@@ -21,5 +21,9 @@ fixtures/
 .nvmrc
 vitest.config.ts
 drizzle.config.ts
-tsconfig.json
-tsconfig.build.json
+scripts/
+.github/
+*.md
+docker-compose*.yml
+Dockerfile.dev
+
