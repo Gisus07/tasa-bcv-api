@@ -53,8 +53,23 @@ export async function fetchBcv(
       throwOnError: false,
     });
   } catch (err) {
+    // Capture every diagnostic shape undici might surface: top-level code,
+    // wrapped cause (often AggregateError with multiple AF_INET/AF_INET6
+    // failures), and the stack. Helps debug TLS, DNS, and connect issues.
+    const e = err as { code?: string; cause?: unknown; errors?: unknown } & Error;
+    const cause = e.cause as { code?: string; message?: string } | undefined;
     throw new UpstreamUnavailableError(`Network error fetching ${url}`, {
-      cause: err instanceof Error ? err.message : String(err),
+      message: e.message,
+      code: e.code,
+      causeMessage: cause?.message,
+      causeCode: cause?.code,
+      aggregatedErrors: Array.isArray(e.errors)
+        ? (e.errors as Error[]).map((sub) => ({
+            message: sub.message,
+            code: (sub as { code?: string }).code,
+          }))
+        : undefined,
+      stack: e.stack?.split('\n').slice(0, 5).join('\n'),
     });
   }
 

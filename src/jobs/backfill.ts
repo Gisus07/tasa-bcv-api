@@ -1,6 +1,7 @@
 import type { Database } from '../db/client.js';
 import { completeIngestRun, getEarliestDate, startIngestRun } from '../db/queries.js';
 import { todayCaracas } from '../lib/dates.js';
+import { AppError } from '../lib/errors.js';
 import { logger } from '../logger.js';
 import { ingestEurHistory, ingestUsdHistory } from '../services/bcv/ingest.js';
 import { propagateGaps } from '../services/bcv/quirks.js';
@@ -65,8 +66,10 @@ export async function runBackfill(d: Database, options: BackfillOptions = {}): P
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const details = err instanceof AppError ? err.details : undefined;
+    const stack = err instanceof Error ? err.stack?.split('\n').slice(0, 8).join('\n') : undefined;
     await completeIngestRun(d, runId, 'error', 0, 0, message);
-    log.error({ runId, err: message }, 'backfill failed');
+    log.error({ runId, err: message, details, stack }, 'backfill failed');
     throw err;
   }
 }

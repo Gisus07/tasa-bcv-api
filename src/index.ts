@@ -36,7 +36,16 @@ async function main(): Promise<void> {
   if (e.RUN_BACKFILL_ON_BOOT) {
     log.warn('RUN_BACKFILL_ON_BOOT=true; running full backfill in background');
     void runBackfill(db()).catch((err) => {
-      log.error({ err: err instanceof Error ? err.message : err }, 'boot backfill failed');
+      // The job itself already logs details via the AppError path. Here we
+      // only need to surface the failure at the top level so it's visible in
+      // a `railway logs` scroll.
+      log.error(
+        {
+          err: err instanceof Error ? err.message : err,
+          name: err instanceof Error ? err.name : undefined,
+        },
+        'boot backfill failed',
+      );
     });
   }
 
