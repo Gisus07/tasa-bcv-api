@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import { parseEurWorkbook } from './parser.eur.js';
 
 const fixture = readFileSync(resolve('fixtures/2_1_2b26_otrasmonedas.xls'));
+const fixture2021 = readFileSync(resolve('fixtures/2_1_2d21_otrasmonedas.xls'));
 
 describe('parseEurWorkbook', () => {
   const records = parseEurWorkbook(fixture, '2_1_2b26_otrasmonedas.xls');
@@ -46,5 +47,23 @@ describe('parseEurWorkbook', () => {
       expect(seen.has(r.date)).toBe(false);
       seen.add(r.date);
     }
+  });
+});
+
+describe('parseEurWorkbook (legacy 2021 layout with leading blank column)', () => {
+  it('locates the Venta Bs./M.E. column dynamically and parses every sheet', () => {
+    // The 2_1_2d21 file has a blank leading column, so EUR is in col 1 and
+    // Venta Bs in col 6 instead of 0 and 5. The parser must handle both.
+    const records = parseEurWorkbook(fixture2021, '2_1_2d21_otrasmonedas.xls');
+    expect(records.length).toBeGreaterThan(40);
+
+    // Spot-check the last business day of 2021: sheet 30122021 has
+    // Fecha Valor 03/01/2022 and EUR Venta = 5.2115698.
+    const target = records.find((r) => r.date === '2022-01-03');
+    expect(target).toBeDefined();
+    expect(target?.currency).toBe('EUR');
+    expect(target?.rate).toBe('5.21156980');
+    expect(target?.sourceFile).toBe('2_1_2d21_otrasmonedas.xls#30122021');
+    expect(target?.publishedAt).toBe('2021-12-30');
   });
 });

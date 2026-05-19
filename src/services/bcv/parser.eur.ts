@@ -96,15 +96,29 @@ function extractDates(
 }
 
 function extractEurVentaBs(rows: unknown[][], sheetName: string): number {
-  for (const row of rows) {
-    if (typeof row[0] !== 'string') continue;
-    if (row[0].trim().toUpperCase() !== 'EUR') continue;
+  // Column layout drifts across BCV file versions: older files (2020-2021)
+  // have a blank leading column, so "EUR" is at index 1 and Venta Bs at
+  // index 6, while newer files (2024+) put them at 0 and 5. Locate both
+  // dynamically using the "Bs./M.E." header as an anchor.
+  const ventaCol = findVentaBsColumn(rows);
+  if (ventaCol === -1) {
+    throw new UpstreamFormatError(
+      `EUR parser: "Venta (ASK)" column for Bs./M.E. not found in sheet "${sheetName}"`,
+      { sheet: sheetName },
+    );
+  }
 
-    const venta = row[5];
+  for (const row of rows) {
+    const codeCell = row.find(
+      (c) => typeof c === 'string' && c.trim().toUpperCase() === 'EUR',
+    );
+    if (codeCell === undefined) continue;
+
+    const venta = row[ventaCol];
     if (typeof venta !== 'number' || !Number.isFinite(venta) || venta <= 0) {
       throw new UpstreamFormatError(
         `EUR parser: EUR row found but Venta (Bs./M.E.) is invalid in sheet "${sheetName}"`,
-        { sheet: sheetName, value: venta },
+        { sheet: sheetName, value: venta, ventaCol },
       );
     }
     return venta;
@@ -113,6 +127,47 @@ function extractEurVentaBs(rows: unknown[][], sheetName: string): number {
     `EUR parser: EUR row not found in sheet "${sheetName}"`,
     { sheet: sheetName },
   );
+}
+
+/**
+ * Locates the "Venta (ASK)" column that belongs to the "Bs./M.E." group.
+ *
+ * The BCV layout uses two anchors:
+ *   - A higher row contains the group label "Bs./M.E." in some column.
+ *   - The next non-empty row contains the per-group "Compra (BID)" /
+ *     "Venta (ASK)" sub-headers.
+ *
+ * The Venta we want is the *second* occurrence of "Venta (ASK)" — the one
+ * at or to the right of the Bs./M.E. anchor column. The first occurrence
+ * is the M.E./US$ group, which we don't store.
+ */
+function findVentaBsColumn(rows: unknown[][]): number {
+  let bsAnchorCol = -1;
+  let bsAnchorRow = -1;
+  for (let r = 0; r < rows.length; r++) {
+    const row = rows[r]!;
+    for (let c = 0; c < row.length; c++) {
+      const cell = row[c];
+      if (typeof cell === 'string' && /^\s*Bs\.\s*\/\s*M\.E\.\s*$/i.test(cell)) {
+        bsAnchorCol = c;
+        bsAnchorRow = r;
+        break;
+      }
+    }
+    if (bsAnchorRow !== -1) break;
+  }
+  if (bsAnchorRow === -1) return -1;
+
+  for (let r = bsAnchorRow + 1; r < rows.length; r++) {
+    const row = rows[r]!;
+    for (let c = bsAnchorCol; c < row.length; c++) {
+      const cell = row[c];
+      if (typeof cell === 'string' && /Venta\s*\(ASK\)/i.test(cell)) {
+        return c;
+      }
+    }
+  }
+  return -1;
 }
 
 function sheetNameToIso(name: string): string {
