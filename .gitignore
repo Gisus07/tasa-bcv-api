@@ -51,3 +51,6 @@ venv/
 firebase_key.json
 firebase_key_test_prod.jsonc
 reiniciar-bot.txt
+
+# Private internal documentation (not for publication)
+internal-docs/
