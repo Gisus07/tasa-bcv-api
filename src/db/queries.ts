@@ -4,13 +4,20 @@ import { ingestRuns, rates, type IngestRun, type NewIngestRun, type NewRate, typ
 
 export type Currency = 'USD' | 'EUR';
 
-export async function getLatest(d: Database, currency: Currency): Promise<Rate | undefined> {
-  const rows = await d
-    .select()
-    .from(rates)
-    .where(eq(rates.currency, currency))
-    .orderBy(desc(rates.date))
-    .limit(1);
+/**
+ * Most recent rate for a currency. When `asOf` is given, caps at rows on or
+ * before that date — so `/latest` returns the rate in effect today rather than
+ * a future one the BCV already published for the next business day.
+ */
+export async function getLatest(
+  d: Database,
+  currency: Currency,
+  asOf?: string,
+): Promise<Rate | undefined> {
+  const where = asOf
+    ? and(eq(rates.currency, currency), lte(rates.date, asOf))
+    : eq(rates.currency, currency);
+  const rows = await d.select().from(rates).where(where).orderBy(desc(rates.date)).limit(1);
   return rows[0];
 }
 

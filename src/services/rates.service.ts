@@ -39,7 +39,13 @@ async function assertDateInRange(d: Database, date: string, currency: Currency):
 
 /** Returns the most recent rate per currency, paired into one flat object. */
 export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
-  const [usdRow, eurRow] = await Promise.all([getLatest(d, 'USD'), getLatest(d, 'EUR')]);
+  // "latest" = the rate in effect TODAY, not a future one the BCV may have
+  // already published for the next business day. Cap at today (Caracas).
+  const today = todayCaracas();
+  const [usdRow, eurRow] = await Promise.all([
+    getLatest(d, 'USD', today),
+    getLatest(d, 'EUR', today),
+  ]);
   if (!usdRow || !eurRow) {
     throw new NotFoundError(
       'Aún no hay tasas disponibles. Ejecuta el backfill o el job diario primero.',
@@ -68,7 +74,8 @@ export async function getSingleCurrency(
   date?: string,
 ): Promise<SingleRateOutput> {
   if (date === undefined) {
-    const row = await getLatest(d, currency);
+    // Latest in effect today, not a future published rate (see getLatestPair).
+    const row = await getLatest(d, currency, todayCaracas());
     if (!row) throw new NotFoundError(`Aún no hay tasa ${currency} disponible.`);
     return buildSingle(row);
   }

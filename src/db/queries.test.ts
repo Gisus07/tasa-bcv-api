@@ -75,6 +75,15 @@ describe('queries (real Postgres via testcontainers)', () => {
     expect(latestEur?.date).toBe('2026-05-14');
   });
 
+  it('getLatest caps at asOf, ignoring future-dated rows (the /latest bug)', async () => {
+    await upsertRates(env.db, [usd14, usd15, usd18]);
+    // Without asOf → the absolute max date.
+    expect((await getLatest(env.db, USD))?.date).toBe('2026-05-18');
+    // With asOf → the latest on or before that date (18 is "future").
+    expect((await getLatest(env.db, USD, '2026-05-15'))?.date).toBe('2026-05-15');
+    expect((await getLatest(env.db, USD, '2026-05-16'))?.date).toBe('2026-05-15');
+  });
+
   it('getByDate returns undefined when no row exists', async () => {
     await upsertRates(env.db, [usd14]);
     expect(await getByDate(env.db, '2026-05-15', USD)).toBeUndefined();
