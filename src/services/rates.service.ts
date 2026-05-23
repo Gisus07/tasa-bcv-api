@@ -118,15 +118,22 @@ export async function getRange(
 
 /** /v1/last-updated payload. */
 export async function getLastUpdated(d: Database): Promise<{
+  has_data: boolean;
   last_successful_run_at: string | null;
   last_successful_job_type: string | null;
   rows_upserted: number | null;
 }> {
   const run = await getLastSuccessfulRun(d);
   if (!run) {
-    return { last_successful_run_at: null, last_successful_job_type: null, rows_upserted: null };
+    return {
+      has_data: false,
+      last_successful_run_at: null,
+      last_successful_job_type: null,
+      rows_upserted: null,
+    };
   }
   return {
+    has_data: true,
     last_successful_run_at: run.finishedAt?.toISOString() ?? null,
     last_successful_job_type: run.jobType,
     rows_upserted: run.rowsUpserted,

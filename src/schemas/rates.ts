@@ -73,6 +73,9 @@ export const RangeResponse = z
 
 export const LastUpdatedResponse = z
   .object({
+    has_data: z.boolean().openapi({
+      description: 'false cuando aún no hay ningún ingest exitoso (base recién creada).',
+    }),
     last_successful_run_at: z.string().datetime().nullable(),
     last_successful_job_type: z.string().nullable(),
     rows_upserted: z.number().int().nonnegative().nullable(),

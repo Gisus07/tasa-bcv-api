@@ -20,6 +20,7 @@ const route = createRoute({
         'application/json': {
           schema: LastUpdatedResponse,
           example: {
+            has_data: true,
             last_successful_run_at: '2026-05-19T04:00:00.000Z',
             last_successful_job_type: 'daily',
             rows_upserted: 12,

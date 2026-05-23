@@ -12,6 +12,23 @@ import { docs } from './routes/docs.js';
 import { buildV1 } from './routes/v1/index.js';
 import { logger } from './logger.js';
 import { env } from './env.js';
+import { readFileSync } from 'node:fs';
+import { todayCaracas } from './lib/dates.js';
+
+/**
+ * API version shown in the OpenAPI spec. Single source of truth: package.json
+ * (read at startup). Falls back to '0.0.0' if it can't be read (D3).
+ */
+const API_VERSION = ((): string => {
+  try {
+    const pkg = JSON.parse(
+      readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
+    ) as { version?: string };
+    return pkg.version ?? '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+})();
 
 export interface AppOptions {
   /** Skip the IP rate limiter (test mode). */
@@ -92,6 +109,13 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       // (only on rare BCV corrections), and any change forces fetched_at to
       // shift so clients with conditional requests still see the new value.
       c.header('Cache-Control', 'public, max-age=86400');
+    } else if (path.endsWith('/rates/range')) {
+      // Past-only ranges are immutable; ranges that include today change daily.
+      const to = c.req.query('to');
+      c.header(
+        'Cache-Control',
+        to && to < todayCaracas() ? 'public, max-age=86400' : 'public, max-age=300',
+      );
     } else {
       c.header('Cache-Control', 'public, max-age=600');
     }
@@ -134,7 +158,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
     openapi: '3.1.0',
     info: {
       title: 'tasa-bcv-api',
-      version: '0.1.0',
+      version: API_VERSION,
       description:
         'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 00:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.',
       contact: {
@@ -173,7 +197,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       openapi: '3.1.0',
       info: {
         title: 'tasa-bcv-api',
-        version: '0.1.0',
+        version: API_VERSION,
         description:
           'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
         contact: {

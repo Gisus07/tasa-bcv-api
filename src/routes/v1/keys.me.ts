@@ -113,6 +113,8 @@ keysMe.openapi(deleteRoute, async (c) => {
     );
   }
   await revokeKey(db(), apiKey.id);
+  // 200 + body (not 204) is intentional: the confirmation message is useful
+  // for API consumers, so keeping a readable body here is worth it (D1).
   return c.json(
     {
       revoked: true,
