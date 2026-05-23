@@ -78,4 +78,67 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
     const n = await propagateGaps(env.db, USD, '2026-05-15', '2026-05-17');
     expect(n).toBe(0);
   });
+
+  it('re-propagates a stale propagated row when its real anchor changes', async () => {
+    // Reproduces the prod bug: backfill state had 14 real and 15-16 propagated
+    // from 14; then the real Friday rate (15) arrived late and overwrote 15.
+    await upsertRates(env.db, [
+      { date: '2026-05-14', currency: USD, rate: '510.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'propagated',
+        isPropagated: true,
+        propagatedFrom: '2026-05-14',
+      },
+      {
+        date: '2026-05-16',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'propagated',
+        isPropagated: true,
+        propagatedFrom: '2026-05-14',
+      },
+    ]);
+    await upsertRates(env.db, [
+      { date: '2026-05-15', currency: USD, rate: '515.00000000', sourceFile: 'x' },
+    ]);
+
+    const n = await propagateGaps(env.db, USD, '2026-05-14', '2026-05-16');
+    expect(n).toBe(1); // only 16 changes
+
+    const row16 = await getByDate(env.db, '2026-05-16', USD);
+    expect(row16?.isPropagated).toBe(true);
+    expect(row16?.propagatedFrom).toBe('2026-05-15'); // re-anchored to the real 15
+    expect(row16?.rate).toBe('515.00000000');
+
+    const row15 = await getByDate(env.db, '2026-05-15', USD);
+    expect(row15?.isPropagated).toBe(false);
+    expect(row15?.rate).toBe('515.00000000');
+  });
+
+  it('re-anchors propagated rows when the window starts on a propagated day', async () => {
+    // The daily window can start on a propagated day (e.g. min(today-7, lastReal)).
+    // The seed must reach back to the real anchor before the window.
+    await upsertRates(env.db, [
+      { date: '2026-05-15', currency: USD, rate: '515.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-16',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'propagated',
+        isPropagated: true,
+        propagatedFrom: '2026-05-14',
+      },
+    ]);
+
+    // Window starts at 16 (propagated); 15 (real) is outside it.
+    const n = await propagateGaps(env.db, USD, '2026-05-16', '2026-05-16');
+    expect(n).toBe(1);
+
+    const row16 = await getByDate(env.db, '2026-05-16', USD);
+    expect(row16?.propagatedFrom).toBe('2026-05-15');
+    expect(row16?.rate).toBe('515.00000000');
+  });
 });

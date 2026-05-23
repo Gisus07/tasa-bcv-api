@@ -47,6 +47,27 @@ export async function ingestUsdHistory(d: Database): Promise<IngestSummary> {
   return { filesFetched: 1, rowsUpserted: upserted, records: records.length, errors: [] };
 }
 
+/**
+ * Daily refresh of recent USD rows from the canonical XLS. The homepage scrape
+ * only carries today's rate, but the USD XLS publishes business days with a lag
+ * — so the daily must re-read it to catch dates that landed late. Otherwise a
+ * late-published day stays propagated from an older one forever (the bug that
+ * hit 2026-05-15..18). Filtered to `sinceIso` to keep the write set small; the
+ * upsert is idempotent so unchanged rows are skipped.
+ */
+export async function ingestRecentUsd(d: Database, sinceIso: string): Promise<IngestSummary> {
+  const log = logger().child({ source: 'usd-recent' });
+  const url = usdHistoryUrl();
+  const fetched = await fetchBcv(url);
+  if (!fetched) {
+    return { filesFetched: 0, rowsUpserted: 0, records: 0, errors: [`${url}: empty body`] };
+  }
+  const recent = parseUsdWorkbook(fetched.body, '2_1_1_tdc.xlsx').filter((r) => r.date >= sinceIso);
+  const upserted = await batchedUpsert(d, recent.map(toNewRate));
+  log.info({ records: recent.length, upserted, sinceIso }, 'recent USD refresh complete');
+  return { filesFetched: 1, rowsUpserted: upserted, records: recent.length, errors: [] };
+}
+
 /** Backfill EUR history by sweeping every quarterly file in [fromYear, toYear]. */
 export async function ingestEurHistory(
   d: Database,

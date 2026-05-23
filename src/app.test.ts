@@ -39,6 +39,7 @@ describe('createApp', () => {
       '/v1/rates/{date}',
       '/v1/last-updated',
       '/v1/admin/trigger-ingest',
+      '/v1/admin/reingest',
       '/v1/admin/keys',
       '/v1/admin/keys/{id}/revoke',
       '/v1/keys/register',
@@ -140,6 +141,15 @@ describe('createApp', () => {
     // the middleware reads env() on every request so updating process.env is enough.
     const app = createApp({ disableRateLimit: true });
     const res = await app.request('/v1/admin/trigger-ingest', { method: 'POST' });
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { code: string };
+    expect(body.code).toBe('UNAUTHORIZED');
+  });
+
+  it('admin/reingest returns 401 without a bearer token', async () => {
+    process.env.ADMIN_TOKEN = 'thisIsAStrongTokenForTesting1234';
+    const app = createApp({ disableRateLimit: true });
+    const res = await app.request('/v1/admin/reingest', { method: 'POST' });
     expect(res.status).toBe(401);
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe('UNAUTHORIZED');
