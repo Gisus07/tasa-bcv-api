@@ -55,6 +55,20 @@ export async function getLastBefore(
   return rows[0];
 }
 
+/** Date of the most recent real (non-propagated) row for a currency. */
+export async function getLatestRealDate(
+  d: Database,
+  currency: Currency,
+): Promise<string | undefined> {
+  const rows = await d
+    .select({ date: rates.date })
+    .from(rates)
+    .where(and(eq(rates.currency, currency), eq(rates.isPropagated, false)))
+    .orderBy(desc(rates.date))
+    .limit(1);
+  return rows[0]?.date;
+}
+
 /** Earliest date in the DB for a currency (used to validate DATE_BEFORE_HISTORY). */
 export async function getEarliestDate(
   d: Database,
