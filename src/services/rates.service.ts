@@ -39,8 +39,7 @@ async function assertDateInRange(d: Database, date: string, currency: Currency):
 
 /** Returns the most recent rate per currency, paired into one flat object. */
 export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
-  const usdRow = await getLatest(d, 'USD');
-  const eurRow = await getLatest(d, 'EUR');
+  const [usdRow, eurRow] = await Promise.all([getLatest(d, 'USD'), getLatest(d, 'EUR')]);
   if (!usdRow || !eurRow) {
     throw new NotFoundError(
       'Aún no hay tasas disponibles. Ejecuta el backfill o el job diario primero.',
@@ -52,10 +51,8 @@ export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
 
 /** Returns USD + EUR for a given date. */
 export async function getPairByDate(d: Database, date: string): Promise<RatesPairOutput> {
-  await assertDateInRange(d, date, 'USD');
-  await assertDateInRange(d, date, 'EUR');
-  const usdRow = await getByDate(d, date, 'USD');
-  const eurRow = await getByDate(d, date, 'EUR');
+  await Promise.all([assertDateInRange(d, date, 'USD'), assertDateInRange(d, date, 'EUR')]);
+  const [usdRow, eurRow] = await Promise.all([getByDate(d, date, 'USD'), getByDate(d, date, 'EUR')]);
   if (!usdRow || !eurRow) {
     throw new NotFoundError(
       `No hay tasas para ${date}. La propagación puede no haber corrido aún para alguna de las monedas.`,
@@ -121,15 +118,22 @@ export async function getRange(
 
 /** /v1/last-updated payload. */
 export async function getLastUpdated(d: Database): Promise<{
+  has_data: boolean;
   last_successful_run_at: string | null;
   last_successful_job_type: string | null;
   rows_upserted: number | null;
 }> {
   const run = await getLastSuccessfulRun(d);
   if (!run) {
-    return { last_successful_run_at: null, last_successful_job_type: null, rows_upserted: null };
+    return {
+      has_data: false,
+      last_successful_run_at: null,
+      last_successful_job_type: null,
+      rows_upserted: null,
+    };
   }
   return {
+    has_data: true,
     last_successful_run_at: run.finishedAt?.toISOString() ?? null,
     last_successful_job_type: run.jobType,
     rows_upserted: run.rowsUpserted,

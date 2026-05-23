@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import * as XLSX from 'xlsx';
 import { parseEurWorkbook, parseEurWorkbookSafe } from './parser.eur.js';
 
 const fixture = readFileSync(resolve('fixtures/2_1_2b26_otrasmonedas.xls'));
@@ -110,5 +111,18 @@ describe('parseEurWorkbookSafe', () => {
     expect(Array.isArray(skipped)).toBe(true);
     // Our healthy Q2 2026 fixture should not skip anything.
     expect(skipped).toEqual([]);
+  });
+
+  it('skips a date-named sheet missing "Fecha Valor" instead of throwing', () => {
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([['sin fecha valor'], ['EUR', 'x', 1, 1, 1, 1]]);
+    XLSX.utils.book_append_sheet(wb, ws, '01012026');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xls' }) as Buffer;
+
+    const { records, skipped } = parseEurWorkbookSafe(buf, 'bad.xls');
+    expect(records).toEqual([]);
+    expect(skipped).toHaveLength(1);
+    expect(skipped[0]?.sheet).toBe('01012026');
+    expect(skipped[0]?.reason).toMatch(/Fecha Valor/i);
   });
 });

@@ -92,6 +92,11 @@ export async function findActiveByPlainKey(
  *
  * The histogram entry uses ON CONFLICT DO UPDATE so concurrent requests on
  * the same (key_id, today) row coalesce safely without explicit locks.
+ *
+ * Best-effort by design: the two statements are NOT wrapped in a transaction,
+ * so a failure between them can leave `request_count` and the daily histogram
+ * slightly out of sync. Usage counters are approximate; this keeps the hot
+ * path cheap and is acceptable for the metric's purpose (DB-6).
  */
 export async function bumpUsage(d: Database, keyId: number): Promise<void> {
   await d
@@ -139,5 +144,5 @@ export async function revokeKey(d: Database, id: number): Promise<boolean> {
 
 /** Admin listing — paginated for safety. */
 export async function listKeys(d: Database, limit = 100): Promise<ApiKey[]> {
-  return d.select().from(apiKeys).orderBy(sql`${apiKeys.createdAt} DESC`).limit(limit);
+  return d.select().from(apiKeys).orderBy(desc(apiKeys.createdAt)).limit(limit);
 }

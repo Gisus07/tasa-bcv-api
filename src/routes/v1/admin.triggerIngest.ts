@@ -14,7 +14,7 @@ const route = createRoute({
   tags: ['admin'],
   summary: 'Dispara una ingesta diaria manualmente',
   description:
-    'Endpoint protegido con bearer token que fuerza un daily-update sin esperar al cron. Útil cuando el run programado falla o para refrescar tras un deploy. Devuelve 202 porque el job corre en background.',
+    'Endpoint protegido con bearer token que fuerza un daily-update sin esperar al cron. Útil cuando el run programado falla o para refrescar tras un deploy. Con await=false (default) responde 202 y el job corre en background; con await=true espera a que termine y responde 200.',
   ...({
     'x-codeSamples': codeSamplesFor({
       path: '/v1/admin/trigger-ingest',
@@ -41,8 +41,12 @@ const route = createRoute({
     },
   },
   responses: {
+    200: {
+      description: 'Ingesta completada (cuando `await=true`)',
+      content: { 'application/json': { schema: TriggerIngestResponse } },
+    },
     202: {
-      description: 'Job iniciado (o finalizado, si `await=true`)',
+      description: 'Job iniciado en background (cuando `await=false`)',
       content: { 'application/json': { schema: TriggerIngestResponse } },
     },
     401: {
@@ -55,20 +59,16 @@ const route = createRoute({
 export const adminTriggerIngest = new OpenAPIHono({ defaultHook: defaultZodHook });
 adminTriggerIngest.use('/admin/*', adminAuth());
 adminTriggerIngest.openapi(route, async (c) => {
-  let body: { await?: boolean } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    // body is optional
-  }
+  const body = c.req.valid('json');
+  const awaitJob = body?.await ?? false;
   const log = logger().child({ component: 'admin-trigger' });
-  log.info({ await: body.await }, 'admin-triggered ingest requested');
+  log.info({ await: awaitJob }, 'admin-triggered ingest requested');
 
-  if (body.await) {
+  if (awaitJob) {
     await runDailyUpdate(db(), 'manual');
     return c.json(
       { job_type: 'manual', started: true, message: 'Ingest completed.' },
-      202,
+      200,
     );
   }
 

@@ -31,6 +31,27 @@ async function main(): Promise<void> {
     'starting tasa-bcv-api',
   );
 
+  // Last-resort safety nets: a rejected promise or thrown error that nothing
+  // caught leaves the process in an unknown state. Log it (pino) and exit so
+  // Railway's ON_FAILURE policy restarts a clean process (BE-4).
+  process.on('unhandledRejection', (reason) => {
+    logger().fatal(
+      {
+        reason:
+          reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+      },
+      'unhandledRejection — exiting',
+    );
+    process.exit(1);
+  });
+  process.on('uncaughtException', (err) => {
+    logger().fatal(
+      { err: { message: err.message, stack: err.stack } },
+      'uncaughtException — exiting',
+    );
+    process.exit(1);
+  });
+
   await runMigrations(e.DATABASE_URL);
 
   if (e.RUN_BACKFILL_ON_BOOT) {
@@ -62,15 +83,26 @@ async function main(): Promise<void> {
     },
   );
 
-  // Graceful shutdown
+  // Graceful shutdown: stop the cron, stop accepting new connections and wait
+  // for in-flight requests to drain (capped at 10s), then release resources.
+  // Waiting for server.close before closing the DB avoids truncating responses
+  // mid-flight (BE-4).
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
     if (shuttingDown) return;
     shuttingDown = true;
     log.info({ signal }, 'graceful shutdown started');
     stopCron();
-    server.close(() => {
-      log.info('http server closed');
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(() => {
+        log.warn('server close timed out after 10s; forcing shutdown');
+        resolve();
+      }, 10_000);
+      server.close(() => {
+        clearTimeout(timer);
+        log.info('http server closed');
+        resolve();
+      });
     });
     await disposeBcvClient().catch((err) => log.warn({ err }, 'bcv client close failed'));
     await closeDb().catch((err) => log.warn({ err }, 'db close failed'));

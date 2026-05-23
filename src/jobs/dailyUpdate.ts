@@ -2,6 +2,7 @@ import type { Database } from '../db/client.js';
 import {
   completeIngestRun,
   getByDate,
+  getLatestRealDate,
   hasActiveIngestRun,
   startIngestRun,
 } from '../db/queries.js';
@@ -55,10 +56,18 @@ export async function runDailyUpdate(
     totalUpserted += eurQuarter.rowsUpserted;
     totalFiles += eurQuarter.filesFetched;
 
-    // Fill any gaps over the last 7 days (covers weekends and short outages).
-    const windowStart = addDays(today, -7);
-    totalUpserted += await propagateGaps(d, 'USD', windowStart, today);
-    totalUpserted += await propagateGaps(d, 'EUR', windowStart, today);
+    // Fill any gaps from the last real rate (or the last 7 days, whichever is
+    // older) up to today. Adapting the window to the last real row means an
+    // outage longer than a week still gets fully back-propagated (C1).
+    const fixedStart = addDays(today, -7);
+    const windowStartFor = (lastReal: string | undefined): string =>
+      lastReal && lastReal < fixedStart ? lastReal : fixedStart;
+    const [lastRealUsd, lastRealEur] = await Promise.all([
+      getLatestRealDate(d, 'USD'),
+      getLatestRealDate(d, 'EUR'),
+    ]);
+    totalUpserted += await propagateGaps(d, 'USD', windowStartFor(lastRealUsd), today);
+    totalUpserted += await propagateGaps(d, 'EUR', windowStartFor(lastRealEur), today);
 
     const usdToday = await getByDate(d, today, 'USD');
     const eurToday = await getByDate(d, today, 'EUR');

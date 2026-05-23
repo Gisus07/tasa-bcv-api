@@ -46,7 +46,6 @@ export const rates = pgTable(
     primaryKey({ columns: [table.date, table.currency] }),
     check('rates_currency_check', sql`${table.currency} IN ('USD', 'EUR')`),
     check('rates_rate_positive', sql`${table.rate} > 0`),
-    index('rates_date_idx').on(table.date.desc()),
     index('rates_currency_date_idx').on(table.currency, table.date.desc()),
   ],
 );
@@ -115,14 +114,13 @@ export type NewApiKey = typeof apiKeys.$inferInsert;
 export const apiKeyUsageDaily = pgTable(
   'api_key_usage_daily',
   {
-    keyId: integer('key_id').notNull(),
+    keyId: integer('key_id')
+      .notNull()
+      .references(() => apiKeys.id, { onDelete: 'cascade' }),
     date: date('date').notNull(),
     count: bigint('count', { mode: 'number' }).notNull().default(0),
   },
-  (table) => [
-    primaryKey({ columns: [table.keyId, table.date] }),
-    index('api_key_usage_daily_key_idx').on(table.keyId, table.date.desc()),
-  ],
+  (table) => [primaryKey({ columns: [table.keyId, table.date] })],
 );
 
 export type ApiKeyUsageDaily = typeof apiKeyUsageDaily.$inferSelect;

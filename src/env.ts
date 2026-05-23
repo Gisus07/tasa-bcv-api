@@ -40,7 +40,16 @@ const envSchema = z.object({
 
   RATE_LIMIT_PER_MIN: z.coerce.number().int().positive().default(30),
 
-  ADMIN_TOKEN: z.string().min(16).optional(),
+  /**
+   * Number of trusted reverse-proxy hops in front of the app. Used to pick the
+   * real client IP from the right of X-Forwarded-For. Railway's edge = 1.
+   */
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
+
+  ADMIN_TOKEN: z.string().min(32).optional(),
+
+  /** Public base URL advertised in the OpenAPI `servers` block. */
+  PUBLIC_BASE_URL: z.string().url().default('https://tasa-bcv-api-production.up.railway.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;
