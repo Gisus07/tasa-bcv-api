@@ -12,6 +12,7 @@ import { monthToQuarterLetter } from '../services/bcv/urls.js';
 import {
   ingestCurrentEurQuarter,
   ingestFromHomepage,
+  ingestRecentUsd,
 } from '../services/bcv/ingest.js';
 import { propagateGaps } from '../services/bcv/quirks.js';
 
@@ -55,6 +56,14 @@ export async function runDailyUpdate(
     const eurQuarter = await ingestCurrentEurQuarter(d, yyyy, monthToQuarterLetter(mm));
     totalUpserted += eurQuarter.rowsUpserted;
     totalFiles += eurQuarter.filesFetched;
+
+    // Refresh recent USD from the XLS too. The homepage only carries today's
+    // rate, but the USD XLS can publish business days with a lag; without this
+    // re-read, a late day stays propagated from an older one forever (the bug
+    // that hit 2026-05-15..18). A 14-day window covers weekends + holidays.
+    const usdRecent = await ingestRecentUsd(d, addDays(today, -14));
+    totalUpserted += usdRecent.rowsUpserted;
+    totalFiles += usdRecent.filesFetched;
 
     // Fill any gaps from the last real rate (or the last 7 days, whichever is
     // older) up to today. Adapting the window to the last real row means an

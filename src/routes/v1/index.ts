@@ -7,6 +7,7 @@ import { ratesUsd } from './rates.usd.js';
 import { ratesEur } from './rates.eur.js';
 import { lastUpdated } from './lastUpdated.js';
 import { adminTriggerIngest } from './admin.triggerIngest.js';
+import { adminReingest } from './admin.reingest.js';
 import { adminKeysList } from './admin.keys.list.js';
 import { adminKeysRevoke } from './admin.keys.revoke.js';
 import { keysRegister } from './keys.register.js';
@@ -28,6 +29,7 @@ export function buildV1(): OpenAPIHono {
   v1.route('/', keysMeUsage);
   v1.route('/', keysMe);
   v1.route('/', adminTriggerIngest);
+  v1.route('/', adminReingest);
   v1.route('/', adminKeysList);
   v1.route('/', adminKeysRevoke);
   v1.route('/', ratesByDate);
