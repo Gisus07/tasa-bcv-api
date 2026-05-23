@@ -29,6 +29,13 @@
       "when": 1779501705015,
       "tag": "0003_tanda_c_db",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779573562568,
+      "tag": "0004_parallel_rates",
+      "breakpoints": true
     }
   ]
 }

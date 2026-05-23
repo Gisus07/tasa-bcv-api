@@ -60,6 +60,7 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
 | Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
 | Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil — el campo `propagated_currencies` lo señala |
+| Tasa paralela (Binance) | "Dólar Binance" USDT/VES desde Binance P2P, capturado cada hora, con histórico horario y velas diarias OHLC |
 | Documentación bilingüe | `/docs` en español por defecto, `/docs/en` en inglés, auto-detect por `Accept-Language` |
 | Code samples integrados | Snippets listos en curl, JavaScript, TypeScript, Python, PHP y Go en la doc |
 | API keys gratuitas | Registro abierto en `/v1/keys/register` para subir el límite a 300 req/min |
@@ -78,11 +79,15 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | `GET` | `/v1/rates/usd?date=` | opcional | Solo USD (latest si omites `date`) |
 | `GET` | `/v1/rates/eur?date=` | opcional | Solo EUR |
 | `GET` | `/v1/last-updated` | – | Timestamp del último ingest exitoso |
+| `GET` | `/v1/parallel/latest` | opcional | Tasa paralela actual (Binance P2P, USDT/VES) |
+| `GET` | `/v1/parallel/history?from&to` | opcional | Histórico horario de la paralela (máx 31 días) |
+| `GET` | `/v1/parallel/daily?from&to` | opcional | Velas diarias OHLC de la paralela (máx 365 días) |
 | `POST` | `/v1/keys/register` | – | Registrar API key (gratis, instantáneo) |
 | `GET` | `/v1/keys/me` | **key** | Metadata de mi key |
 | `GET` | `/v1/keys/me/usage?days=` | **key** | Histograma diario de uso |
 | `DELETE` | `/v1/keys/me` | **key** | Auto-revoke de la key |
 | `POST` | `/v1/admin/trigger-ingest` | **admin** | Disparar ingest manual |
+| `POST` | `/v1/admin/reingest` | **admin** | Re-ingesta total del histórico (corrige datos) |
 | `GET` | `/v1/admin/keys` | **admin** | Listar todas las keys |
 | `POST` | `/v1/admin/keys/{id}/revoke` | **admin** | Revocar key específica |
 

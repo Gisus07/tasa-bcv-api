@@ -124,3 +124,27 @@ export const apiKeyUsageDaily = pgTable(
 );
 
 export type ApiKeyUsageDaily = typeof apiKeyUsageDaily.$inferSelect;
+
+/**
+ * Parallel (Binance P2P) USDT/VES snapshots. Unlike `rates` (one row per day,
+ * official BCV), this is intra-day: one row per hourly capture. Not propagated —
+ * Binance is a 24/7 market, so every hour has a real value.
+ */
+export const parallelRates = pgTable(
+  'parallel_rates',
+  {
+    id: serial('id').primaryKey(),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    /** Median of top-10 ads to buy USDT (Bs per USDT). */
+    buy: numeric('buy', { precision: 18, scale: 8 }).notNull(),
+    /** Median of top-10 ads to sell USDT. */
+    sell: numeric('sell', { precision: 18, scale: 8 }).notNull(),
+    average: numeric('average', { precision: 18, scale: 8 }).notNull(),
+    source: varchar('source', { length: 16 }).notNull().default('binance_p2p'),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('parallel_rates_timestamp_idx').on(table.timestamp.desc())],
+);
+
+export type ParallelRate = typeof parallelRates.$inferSelect;
+export type NewParallelRate = typeof parallelRates.$inferInsert;
