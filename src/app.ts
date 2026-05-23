@@ -4,7 +4,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { cors } from 'hono/cors';
 import { apiKeyResolver } from './middleware/apiKey.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { ipRateLimit } from './middleware/rateLimit.js';
+import { ipRateLimit, registerRateLimit } from './middleware/rateLimit.js';
 import { defaultZodHook } from './middleware/zodHook.js';
 import { ES_TO_EN, translateSpec } from './i18n/translations.js';
 import { health } from './routes/health.js';
@@ -113,6 +113,8 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
   app.use('/v1/*', apiKeyResolver());
 
   if (!options.disableRateLimit) {
+    // Stricter cap on the public signup endpoint to curb key spam (SEC-1).
+    app.use('/v1/keys/register', registerRateLimit());
     // Skip rate limit on /health so uptime checks don't get 429'd.
     app.use('/v1/*', ipRateLimit());
   }

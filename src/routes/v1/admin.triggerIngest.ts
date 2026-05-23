@@ -55,16 +55,12 @@ const route = createRoute({
 export const adminTriggerIngest = new OpenAPIHono({ defaultHook: defaultZodHook });
 adminTriggerIngest.use('/admin/*', adminAuth());
 adminTriggerIngest.openapi(route, async (c) => {
-  let body: { await?: boolean } = {};
-  try {
-    body = await c.req.json();
-  } catch {
-    // body is optional
-  }
+  const body = c.req.valid('json');
+  const awaitJob = body?.await ?? false;
   const log = logger().child({ component: 'admin-trigger' });
-  log.info({ await: body.await }, 'admin-triggered ingest requested');
+  log.info({ await: awaitJob }, 'admin-triggered ingest requested');
 
-  if (body.await) {
+  if (awaitJob) {
     await runDailyUpdate(db(), 'manual');
     return c.json(
       { job_type: 'manual', started: true, message: 'Ingest completed.' },

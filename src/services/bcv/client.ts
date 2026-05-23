@@ -16,6 +16,13 @@ const insecureDispatcher = new Agent({
   bodyTimeout: 60_000,
 });
 
+/**
+ * TLS verification is disabled only for the BCV site (its cert is invalid), so
+ * guard the insecure dispatcher behind a host allowlist: a misconfigured URL
+ * or a redirect to another domain must never ride the insecure path (SEC-6).
+ */
+const ALLOWED_INSECURE_HOSTS = new Set(['www.bcv.org.ve', 'bcv.org.ve']);
+
 const DEFAULT_HEADERS: Record<string, string> = {
   // Use a desktop UA. BCV does not actively block scrapers, but some
   // intermediaries strip empty/abusive UAs.
@@ -62,6 +69,10 @@ export async function fetchBcv(
   url: string,
   options: FetchOptions = {},
 ): Promise<FetchResult | null> {
+  const host = new URL(url).hostname;
+  if (!ALLOWED_INSECURE_HOSTS.has(host)) {
+    throw new UpstreamUnavailableError(`fetchBcv: host no permitido "${host}"`, { host });
+  }
   let response;
   let attempt = 0;
   const log = logger().child({ component: 'bcv-client', url });
