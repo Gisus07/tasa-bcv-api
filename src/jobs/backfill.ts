@@ -1,5 +1,10 @@
 import type { Database } from '../db/client.js';
-import { completeIngestRun, getEarliestDate, startIngestRun } from '../db/queries.js';
+import {
+  completeIngestRun,
+  getEarliestDate,
+  hasActiveIngestRun,
+  startIngestRun,
+} from '../db/queries.js';
 import { todayCaracas } from '../lib/dates.js';
 import { AppError } from '../lib/errors.js';
 import { logger } from '../logger.js';
@@ -21,6 +26,14 @@ export interface BackfillOptions {
  */
 export async function runBackfill(d: Database, options: BackfillOptions = {}): Promise<void> {
   const log = logger().child({ job: 'backfill' });
+
+  // Respect the same 30-minute lock as the daily so a boot backfill can't run
+  // concurrently with a scheduled ingest (BE-3).
+  if (await hasActiveIngestRun(d, 30)) {
+    log.warn('another ingest_run is in progress; skipping backfill');
+    return;
+  }
+
   const fromYear = options.fromYear ?? 2016;
   const toYear = options.toYear ?? new Date().getUTCFullYear();
   const runId = await startIngestRun(d, 'backfill');

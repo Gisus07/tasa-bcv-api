@@ -15,6 +15,9 @@ export function db(): Database {
       max: 10,
       idleTimeoutMillis: 30_000,
       connectionTimeoutMillis: 10_000,
+      // Cap any single statement so a hung query can't hold a pool slot forever
+      // and exhaust the pool. Generous enough for backfill batches (BE-2).
+      statement_timeout: 30_000,
     });
     _db = drizzle(_pool, { schema });
   }

@@ -37,13 +37,18 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
   }
 
   if (err instanceof HTTPException) {
-    return c.json(
-      {
-        error: err.message || 'Solicitud fallida',
-        code: 'INTERNAL' satisfies ErrorCode,
-      },
-      err.status,
-    );
+    // Map hono's status to our stable code instead of always 'INTERNAL' (BE-6).
+    const code: ErrorCode =
+      err.status === 404
+        ? 'NOT_FOUND'
+        : err.status === 401
+          ? 'UNAUTHORIZED'
+          : err.status === 429
+            ? 'RATE_LIMITED'
+            : err.status >= 400 && err.status < 500
+              ? 'VALIDATION_ERROR'
+              : 'INTERNAL';
+    return c.json({ error: err.message || 'Solicitud fallida', code }, err.status);
   }
 
   // Unknown error — log full stack, return generic message.

@@ -77,8 +77,11 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
   });
 
   // Cache hints. Historical dates never change; "latest" can be cached briefly.
+  // Only successful responses are cached — caching a 404/503 would let a CDN or
+  // client keep serving a stale error after the data appears (BE-1).
   app.use('/v1/rates/*', async (c, next) => {
     await next();
+    if (c.res.status < 200 || c.res.status >= 300) return;
     const path = c.req.path;
     if (path.endsWith('/latest')) {
       // 5-minute cache for "latest" — daily rates only change at 00:00 Caracas.

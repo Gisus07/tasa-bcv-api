@@ -25,6 +25,15 @@ const route = createRoute({
 const startedAt = Date.now();
 
 export const health = new OpenAPIHono({ defaultHook: defaultZodHook });
+
+// Liveness: 200 while the process is up, without touching the DB. Uptime
+// monitors should hit this so a DB blip doesn't read as a dead process.
+// Railway's deploy healthcheck stays on /health (which also checks the DB =
+// readiness). (BE-5)
+health.get('/health/live', (c) =>
+  c.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000) }),
+);
+
 health.openapi(route, async (c) => {
   try {
     await db().execute(sql`SELECT 1`);
