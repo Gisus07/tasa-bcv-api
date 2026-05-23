@@ -175,6 +175,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
     ],
     tags: [
       { name: 'rates', description: 'Consultas de tasas de cambio' },
+      { name: 'parallel', description: 'Tasa paralela (Binance P2P, USDT/VES)' },
       { name: 'keys', description: 'Gestión de API keys del tier Free' },
       { name: 'system', description: 'Estado y metadatos' },
       { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
@@ -214,6 +215,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       ],
       tags: [
         { name: 'rates', description: 'Exchange rate queries' },
+        { name: 'parallel', description: 'Parallel rate (Binance P2P, USDT/VES)' },
         { name: 'keys', description: 'Free-tier API key management' },
         { name: 'system', description: 'Health and metadata' },
         { name: 'admin', description: 'Administrative endpoints (require bearer token)' },

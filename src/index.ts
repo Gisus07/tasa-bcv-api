@@ -7,6 +7,7 @@ import { closeDb, db } from './db/client.js';
 import { env } from './env.js';
 import { runBackfill } from './jobs/backfill.js';
 import { startCron, stopCron } from './jobs/cron.js';
+import { runParallelSnapshot } from './jobs/parallelSnapshot.js';
 import { logger } from './logger.js';
 import { disposeBcvClient } from './services/bcv/client.js';
 
@@ -71,6 +72,15 @@ async function main(): Promise<void> {
   }
 
   startCron();
+
+  // Take an initial parallel snapshot on boot so /v1/parallel/latest has data
+  // right away; the hourly cron continues from there. Best-effort.
+  void runParallelSnapshot(db()).catch((err) =>
+    log.error(
+      { err: err instanceof Error ? err.message : err },
+      'initial parallel snapshot failed',
+    ),
+  );
 
   const app = createApp();
   const server = serve(

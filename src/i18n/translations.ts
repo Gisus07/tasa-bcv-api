@@ -10,6 +10,25 @@
  * worst-case failure mode is a mixed-language doc — not a crash.
  */
 export const ES_TO_EN: Record<string, string> = {
+  // ===== parallel (Binance P2P, v0.3.0) =====
+  'Última tasa paralela (Binance P2P, USDT/VES)': 'Latest parallel rate (Binance P2P, USDT/VES)',
+  'Tasa paralela actual ("dólar Binance", USDT/VES), mediana del top-10 de ofertas P2P, capturada cada hora. `buy` = Bs para comprar 1 USDT, `sell` = al vender, `average` = referencia.':
+    'Current parallel rate ("Binance dollar", USDT/VES), the median of the top-10 P2P ads, captured hourly. `buy` = Bs to buy 1 USDT, `sell` = when selling, `average` = reference.',
+  'Último snapshot de la tasa paralela': 'Latest parallel rate snapshot',
+  'Aún no hay snapshots disponibles': 'No snapshots available yet',
+  'Histórico horario de la tasa paralela': 'Hourly history of the parallel rate',
+  'Snapshots horarios de la tasa paralela (Binance P2P) en un rango de fechas (YYYY-MM-DD). Máximo 31 días por request; para rangos mayores usa /v1/parallel/daily.':
+    'Hourly snapshots of the parallel rate (Binance P2P) over a date range (YYYY-MM-DD). Max 31 days per request; for larger ranges use /v1/parallel/daily.',
+  'Snapshots horarios en el rango': 'Hourly snapshots in the range',
+  'Rango inválido o mayor a 31 días': 'Invalid range or larger than 31 days',
+  'Agregación diaria (OHLC) de la tasa paralela': 'Daily (OHLC) aggregation of the parallel rate',
+  'Velas diarias (open/high/low/close + promedio) de la tasa paralela, agregadas por día del calendario de Caracas. Ideal para gráficas largas. Máximo 365 días por request.':
+    'Daily candles (open/high/low/close + average) of the parallel rate, aggregated by Caracas calendar day. Ideal for long charts. Max 365 days per request.',
+  'Velas diarias en el rango': 'Daily candles in the range',
+  'Rango inválido o mayor a 365 días': 'Invalid range or larger than 365 days',
+  'Bs para comprar 1 USDT (mediana top-10)': 'Bs to buy 1 USDT (median of top-10)',
+  'Bs al vender 1 USDT (mediana top-10)': 'Bs when selling 1 USDT (median of top-10)',
+
   // ===== schemas/common.ts =====
   'Fecha ISO YYYY-MM-DD': 'ISO date YYYY-MM-DD',
   'Código ISO 4217 de la moneda': 'ISO 4217 currency code',
