@@ -36,6 +36,10 @@ curl "https://tasa-bcv-api-production.up.railway.app/v1/rates/range?from=2026-05
 
 # Solo USD del día
 curl https://tasa-bcv-api-production.up.railway.app/v1/rates/usd
+
+# Tasa paralela (dólar Binance), en vivo
+curl https://tasa-bcv-api-production.up.railway.app/v1/parallel/latest
+# → buy 721.26 / sell 722.65 / average 721.96 (USDT/VES)
 ```
 
 ---
@@ -60,7 +64,7 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
 | Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
 | Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil — el campo `propagated_currencies` lo señala |
-| Tasa paralela (Binance) | "Dólar Binance" USDT/VES desde Binance P2P, capturado cada hora, con histórico horario y velas diarias OHLC |
+| Tasa paralela (Binance) | "Dólar Binance" USDT/VES desde Binance P2P: **tasa en vivo**, histórico horario y velas diarias OHLC |
 | Documentación bilingüe | `/docs` en español por defecto, `/docs/en` en inglés, auto-detect por `Accept-Language` |
 | Code samples integrados | Snippets listos en curl, JavaScript, TypeScript, Python, PHP y Go en la doc |
 | API keys gratuitas | Registro abierto en `/v1/keys/register` para subir el límite a 300 req/min |
@@ -106,6 +110,26 @@ Ejemplo:
 | 2026-05-14 | 510.79 | 598.12 | Bs.D (Digital) |
 
 Para comparar tasas pre y post-redenominación, divide los valores antiguos entre 1,000,000.
+
+## 💵 Tasa paralela (dólar Binance)
+
+Además del BCV, la API expone la **tasa paralela** — el "dólar Binance" (USDT/VES) que mueve el mercado P2P. Se calcula como la **mediana del top-10 de ofertas** de Binance P2P en cada lado:
+
+- `buy` — bolívares para **comprar** 1 USDT
+- `sell` — bolívares al **vender** 1 USDT
+- `average` — promedio de ambos (referencia)
+
+| Endpoint | Qué da |
+|---|---|
+| `/v1/parallel/latest` | Tasa **en vivo**: consulta Binance al momento (cache de 30s), siempre refleja "ahora" |
+| `/v1/parallel/history?from&to` | Snapshots **horarios** crudos (máx 31 días) |
+| `/v1/parallel/daily?from&to` | Velas **diarias OHLC** — `open`/`high`/`low`/`close`/`average` por día Caracas (máx 365 días) |
+
+```bash
+curl https://tasa-bcv-api-production.up.railway.app/v1/parallel/latest
+```
+
+> **El histórico arranca en el lanzamiento.** A diferencia de las tasas del BCV (con archivos oficiales desde 2016), **no existe una fuente fiable del pasado de Binance P2P**. Por eso el histórico de la paralela se construye **desde cero**: un snapshot cada hora desde que la API entró en producción (**23 may 2026**). `/history` y `/daily` crecen con el tiempo; `/latest` siempre está disponible porque se consulta en vivo. No hay apertura/cierre de mercado — es 24/7, así que las velas diarias usan el día de calendario (Caracas).
 
 ## 🛠️ Stack
 

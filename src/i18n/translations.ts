@@ -11,11 +11,11 @@
  */
 export const ES_TO_EN: Record<string, string> = {
   // ===== parallel (Binance P2P, v0.3.0) =====
-  'Última tasa paralela (Binance P2P, USDT/VES)': 'Latest parallel rate (Binance P2P, USDT/VES)',
-  'Tasa paralela actual ("dólar Binance", USDT/VES), mediana del top-10 de ofertas P2P, capturada cada hora. `buy` = Bs para comprar 1 USDT, `sell` = al vender, `average` = referencia.':
-    'Current parallel rate ("Binance dollar", USDT/VES), the median of the top-10 P2P ads, captured hourly. `buy` = Bs to buy 1 USDT, `sell` = when selling, `average` = reference.',
-  'Último snapshot de la tasa paralela': 'Latest parallel rate snapshot',
-  'Aún no hay snapshots disponibles': 'No snapshots available yet',
+  'Tasa paralela en vivo (Binance P2P, USDT/VES)': 'Live parallel rate (Binance P2P, USDT/VES)',
+  'Tasa paralela actual ("dólar Binance", USDT/VES) consultada en vivo desde Binance P2P (cache de 30s). Mediana del top-10 de ofertas. `buy` = Bs para comprar 1 USDT, `sell` = al vender, `average` = referencia. Si Binance no responde, devuelve el último snapshot horario almacenado.':
+    'Current parallel rate ("Binance dollar", USDT/VES) fetched live from Binance P2P (30s cache). Median of the top-10 ads. `buy` = Bs to buy 1 USDT, `sell` = when selling, `average` = reference. If Binance is unreachable, returns the last stored hourly snapshot.',
+  'Tasa paralela actual': 'Current parallel rate',
+  'Sin datos (Binance no responde y no hay snapshots aún)': 'No data (Binance unreachable and no snapshots yet)',
   'Histórico horario de la tasa paralela': 'Hourly history of the parallel rate',
   'Snapshots horarios de la tasa paralela (Binance P2P) en un rango de fechas (YYYY-MM-DD). Máximo 31 días por request; para rangos mayores usa /v1/parallel/daily.':
     'Hourly snapshots of the parallel rate (Binance P2P) over a date range (YYYY-MM-DD). Max 31 days per request; for larger ranges use /v1/parallel/daily.',
