@@ -47,6 +47,9 @@ const envSchema = z.object({
   TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).default(1),
 
   ADMIN_TOKEN: z.string().min(32).optional(),
+
+  /** Public base URL advertised in the OpenAPI `servers` block. */
+  PUBLIC_BASE_URL: z.string().url().default('https://tasa-bcv-api-production.up.railway.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;

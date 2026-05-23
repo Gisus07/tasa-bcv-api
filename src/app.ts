@@ -11,6 +11,7 @@ import { health } from './routes/health.js';
 import { docs } from './routes/docs.js';
 import { buildV1 } from './routes/v1/index.js';
 import { logger } from './logger.js';
+import { env } from './env.js';
 
 export interface AppOptions {
   /** Skip the IP rate limiter (test mode). */
@@ -126,8 +127,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
   app.route('/v1', buildV1());
   app.route('/', docs);
 
-  const PRODUCTION_URL =
-    process.env.PUBLIC_BASE_URL ?? 'https://tasa-bcv-api-production.up.railway.app';
+  const PRODUCTION_URL = env().PUBLIC_BASE_URL;
 
   // OpenAPI spec (idioma por defecto: español)
   app.doc('/openapi.json', {
