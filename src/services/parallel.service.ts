@@ -6,9 +6,14 @@ import {
 } from '../db/parallel.queries.js';
 import { diffDays } from '../lib/dates.js';
 import { InvalidRangeError, NotFoundError, RangeTooLargeError } from '../lib/errors.js';
+import { getParallelSnapshot } from './binance/client.js';
 
 const MAX_HISTORY_DAYS = 31;
 const MAX_DAILY_DAYS = 365;
+
+/** Cache window for the live "latest" so we don't hit Binance on every request. */
+const LIVE_TTL_MS = 30_000;
+let liveCache: { value: ParallelLatestOutput; expiresAt: number } | undefined;
 
 /** Caracas is fixed UTC-4 (no DST), so day bounds use a literal offset. */
 function caracasDayStart(iso: string): Date {
@@ -27,22 +32,45 @@ export interface ParallelLatestOutput {
   source: string;
 }
 
-/** Latest snapshot. Throws NotFoundError if the series is still empty. */
+/**
+ * Live latest parallel rate: queries Binance on the fly, cached ~30s to spare
+ * the upstream and keep responses fast. If Binance is unreachable, falls back
+ * to the most recent stored snapshot — the older `timestamp` signals staleness.
+ * The hourly cron keeps populating the stored series for history/daily.
+ */
 export async function getParallelLatest(d: Database): Promise<ParallelLatestOutput> {
-  const row = await getLatestParallel(d);
-  if (!row) {
-    throw new NotFoundError(
-      'Aún no hay snapshots de la tasa paralela; el primero se captura en la próxima hora.',
-    );
+  const now = Date.now();
+  if (liveCache && liveCache.expiresAt > now) return liveCache.value;
+
+  try {
+    const snap = await getParallelSnapshot();
+    const value: ParallelLatestOutput = {
+      timestamp: new Date().toISOString(),
+      currency_pair: 'USDT/VES',
+      buy: snap.buy,
+      sell: snap.sell,
+      average: snap.average,
+      source: 'binance_p2p',
+    };
+    liveCache = { value, expiresAt: now + LIVE_TTL_MS };
+    return value;
+  } catch {
+    // Upstream failed — serve the last stored snapshot if we have one.
+    const row = await getLatestParallel(d);
+    if (!row) {
+      throw new NotFoundError(
+        'Aún no hay tasa paralela disponible (Binance no responde y no hay snapshots).',
+      );
+    }
+    return {
+      timestamp: row.timestamp.toISOString(),
+      currency_pair: 'USDT/VES',
+      buy: Number(row.buy),
+      sell: Number(row.sell),
+      average: Number(row.average),
+      source: row.source,
+    };
   }
-  return {
-    timestamp: row.timestamp.toISOString(),
-    currency_pair: 'USDT/VES',
-    buy: Number(row.buy),
-    sell: Number(row.sell),
-    average: Number(row.average),
-    source: row.source,
-  };
 }
 
 /** Raw hourly snapshots in [from, to] (max 31 days). */
