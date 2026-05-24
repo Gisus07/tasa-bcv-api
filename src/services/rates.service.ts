@@ -51,8 +51,9 @@ export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
       'Aún no hay tasas disponibles. Ejecuta el backfill o el job diario primero.',
     );
   }
-  const pairDate = usdRow.date > eurRow.date ? usdRow.date : eurRow.date;
-  return buildPair(pairDate, usdRow, eurRow);
+  // "latest" always reports today's effective rate: carry forward if the newest
+  // stored row is older than today (e.g. before the daily has run).
+  return buildPair(today, carryForwardTo(usdRow, today), carryForwardTo(eurRow, today));
 }
 
 /** Returns USD + EUR for a given date. */
@@ -75,9 +76,10 @@ export async function getSingleCurrency(
 ): Promise<SingleRateOutput> {
   if (date === undefined) {
     // Latest in effect today, not a future published rate (see getLatestPair).
-    const row = await getLatest(d, currency, todayCaracas());
+    const today = todayCaracas();
+    const row = await getLatest(d, currency, today);
     if (!row) throw new NotFoundError(`Aún no hay tasa ${currency} disponible.`);
-    return buildSingle(row);
+    return buildSingle(carryForwardTo(row, today));
   }
   await assertDateInRange(d, date, currency);
   const row = await getByDate(d, date, currency);
@@ -144,6 +146,22 @@ export async function getLastUpdated(d: Database): Promise<{
     last_successful_run_at: run.finishedAt?.toISOString() ?? null,
     last_successful_job_type: run.jobType,
     rows_upserted: run.rowsUpserted,
+  };
+}
+
+/**
+ * Ensures a row represents `today`. If the newest stored row is older (e.g. the
+ * daily hasn't run yet after an outage), returns a copy dated today and flagged
+ * as propagated — so `/latest` always reports today's effective rate. Rows
+ * already on or after today pass through unchanged.
+ */
+export function carryForwardTo(row: Rate, today: string): Rate {
+  if (row.date >= today) return row;
+  return {
+    ...row,
+    date: today,
+    isPropagated: true,
+    propagatedFrom: row.propagatedFrom ?? row.date,
   };
 }
 

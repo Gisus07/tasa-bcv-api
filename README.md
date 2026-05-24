@@ -59,7 +59,7 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 
 | Capacidad | Detalle |
 |---|---|
-| Tasa del día | USD/VES y EUR/VES actualizadas automáticamente a las 00:00 Caracas (lun-vie) |
+| Tasa del día | USD/VES y EUR/VES actualizadas automáticamente a las 23:00 Caracas (lun-vie) |
 | Histórico completo | USD desde **enero 2016**, EUR desde **marzo 2020** (los archivos oficiales del BCV) |
 | Rangos de fechas | Hasta 365 días por request, ideal para análisis y gráficos |
 | Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
