@@ -8,6 +8,7 @@ import { env } from './env.js';
 import { runBackfill } from './jobs/backfill.js';
 import { startCron, stopCron } from './jobs/cron.js';
 import { runParallelSnapshot } from './jobs/parallelSnapshot.js';
+import { seedInterventionsIfEmpty } from './jobs/interventionBackfill.js';
 import { logger } from './logger.js';
 import { disposeBcvClient } from './services/bcv/client.js';
 
@@ -79,6 +80,16 @@ async function main(): Promise<void> {
     log.error(
       { err: err instanceof Error ? err.message : err },
       'initial parallel snapshot failed',
+    ),
+  );
+
+  // Seed the intervention history once (only when the table is empty) so a fresh
+  // deploy gets the full back-history with no manual step; the morning cron
+  // keeps it current. Best-effort.
+  void seedInterventionsIfEmpty(db()).catch((err) =>
+    log.error(
+      { err: err instanceof Error ? err.message : err },
+      'initial intervention seed failed',
     ),
   );
 

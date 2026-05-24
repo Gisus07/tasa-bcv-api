@@ -148,3 +148,31 @@ export const parallelRates = pgTable(
 
 export type ParallelRate = typeof parallelRates.$inferSelect;
 export type NewParallelRate = typeof parallelRates.$inferInsert;
+
+/**
+ * BCV exchange-intervention events. On the days it intervenes (~2-3 weekday
+ * mornings) the BCV publishes a settlement rate in Bs./EUR. This is an
+ * INDEPENDENT series — not derived from the official USD/EUR rate. One row per
+ * intervention day; days without an intervention simply have no row (no
+ * propagation, unlike `rates`). History goes back to 2019-05-13.
+ */
+export const interventions = pgTable(
+  'interventions',
+  {
+    /** Day the intervention took place (Caracas calendar). */
+    date: date('date').primaryKey(),
+    /** BCV intervention number, e.g. "011-26" (repeats across days of one round). */
+    interventionNumber: varchar('intervention_number', { length: 16 }).notNull(),
+    /** Settlement exchange rate in Bs. per EUR, as published by the BCV. */
+    rate: numeric('rate', { precision: 18, scale: 8 }).notNull(),
+    source: varchar('source', { length: 16 }).notNull().default('bcv'),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check('interventions_rate_positive', sql`${table.rate} > 0`),
+    index('interventions_date_idx').on(table.date.desc()),
+  ],
+);
+
+export type Intervention = typeof interventions.$inferSelect;
+export type NewIntervention = typeof interventions.$inferInsert;

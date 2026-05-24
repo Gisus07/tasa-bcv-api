@@ -44,6 +44,8 @@ const envSchema = z.object({
   CRON_RETRY_AT: cronExpression.default('0 8 * * 1-5'),
   /** Parallel (Binance P2P) snapshot — hourly, every day (it's a 24/7 market). */
   CRON_PARALLEL_AT: cronExpression.default('0 * * * *'),
+  /** Intervention check — every 2 min in the 7-9 AM Caracas window (Mon-Fri). */
+  CRON_INTERVENTION_AT: cronExpression.default('*/2 7-9 * * 1-5'),
 
   RUN_BACKFILL_ON_BOOT: booleanFromString.default('false'),
 

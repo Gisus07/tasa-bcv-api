@@ -41,6 +41,8 @@ describe('createApp', () => {
       '/v1/parallel/latest',
       '/v1/parallel/history',
       '/v1/parallel/daily',
+      '/v1/intervention/latest',
+      '/v1/intervention/history',
       '/v1/admin/trigger-ingest',
       '/v1/admin/reingest',
       '/v1/admin/keys',

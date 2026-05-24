@@ -160,7 +160,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       title: 'tasa-bcv-api',
       version: API_VERSION,
       description:
-        'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 00:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.',
+        'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 23:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.',
       contact: {
         name: 'Repositorio',
         url: 'https://github.com/Gisus07/tasa-bcv-api',
@@ -176,6 +176,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
     tags: [
       { name: 'rates', description: 'Consultas de tasas de cambio' },
       { name: 'parallel', description: 'Tasa paralela (Binance P2P, USDT/VES)' },
+      { name: 'intervention', description: 'Intervención cambiaria del BCV (Bs./EUR)' },
       { name: 'keys', description: 'Gestión de API keys del tier Free' },
       { name: 'system', description: 'Estado y metadatos' },
       { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
@@ -200,7 +201,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
         title: 'tasa-bcv-api',
         version: API_VERSION,
         description:
-          'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
+          'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 23:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
         contact: {
           name: 'Repository',
           url: 'https://github.com/Gisus07/tasa-bcv-api',
@@ -216,6 +217,7 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       tags: [
         { name: 'rates', description: 'Exchange rate queries' },
         { name: 'parallel', description: 'Parallel rate (Binance P2P, USDT/VES)' },
+        { name: 'intervention', description: 'BCV exchange intervention (Bs./EUR)' },
         { name: 'keys', description: 'Free-tier API key management' },
         { name: 'system', description: 'Health and metadata' },
         { name: 'admin', description: 'Administrative endpoints (require bearer token)' },

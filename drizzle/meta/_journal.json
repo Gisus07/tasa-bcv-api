@@ -36,6 +36,13 @@
       "when": 1779573562568,
       "tag": "0004_parallel_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779661059882,
+      "tag": "0005_spotty_ken_ellis",
+      "breakpoints": true
     }
   ]
 }
