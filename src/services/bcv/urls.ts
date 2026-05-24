@@ -55,3 +55,8 @@ export function* enumerateEurQuarters(
 export function bcvHomeUrl(): string {
   return 'https://www.bcv.org.ve/';
 }
+
+/** BCV exchange-intervention page — source of the intervention history table. */
+export function interventionUrl(): string {
+  return 'https://www.bcv.org.ve/politica-cambiaria/intervencion-cambiaria';
+}

@@ -29,6 +29,19 @@ export const ES_TO_EN: Record<string, string> = {
   'Bs para comprar 1 USDT (mediana top-10)': 'Bs to buy 1 USDT (median of top-10)',
   'Bs al vender 1 USDT (mediana top-10)': 'Bs when selling 1 USDT (median of top-10)',
 
+  // ===== intervention (BCV, v1.0.0) =====
+  'Última intervención cambiaria del BCV': 'Latest BCV exchange intervention',
+  'Última intervención cambiaria publicada por el BCV, con su tipo de cambio en Bs./EUR. Es una serie INDEPENDIENTE de la tasa oficial USD/EUR. Para saber si hubo intervención hoy, compara el campo `date` con la fecha actual. Solo ocurre en días hábiles; no se propaga.':
+    'Latest exchange intervention published by the BCV, with its rate in Bs./EUR. It is an INDEPENDENT series from the official USD/EUR rate. To check whether there was an intervention today, compare the `date` field with the current date. It only happens on business days; it is not propagated.',
+  'Última intervención registrada': 'Latest recorded intervention',
+  'Aún no hay intervenciones registradas': 'No interventions recorded yet',
+  'Histórico de intervenciones cambiarias': 'History of exchange interventions',
+  'Intervenciones cambiarias del BCV (tipo de cambio Bs./EUR) en un rango de fechas (YYYY-MM-DD). Máximo 366 días por request. Solo aparecen los días en que el BCV efectivamente intervino.':
+    'BCV exchange interventions (rate in Bs./EUR) over a date range (YYYY-MM-DD). Max 366 days per request. Only days on which the BCV actually intervened appear.',
+  'Intervenciones en el rango': 'Interventions in the range',
+  'Rango inválido o mayor a 366 días': 'Invalid range or larger than 366 days',
+  'Tipo de cambio de la intervención, Bs. por EUR': 'Intervention exchange rate, Bs. per EUR',
+
   // ===== schemas/common.ts =====
   'Fecha ISO YYYY-MM-DD': 'ISO date YYYY-MM-DD',
   'Código ISO 4217 de la moneda': 'ISO 4217 currency code',
@@ -51,8 +64,8 @@ export const ES_TO_EN: Record<string, string> = {
     'When true, waits for the ingest to finish before responding.',
 
   // ===== OpenAPI info =====
-  'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 00:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.':
-    'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 00:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
+  'API REST pública del histórico oficial de tasas de cambio del Banco Central de Venezuela (BCV) para USD/VES y EUR/VES. Las tasas se actualizan diariamente a las 23:00 America/Caracas (lun–vie). Las fechas de fin de semana y feriados devuelven tasas propagadas con `is_propagated: true`.':
+    'Public REST API for the official Banco Central de Venezuela (BCV) exchange rate history (USD/VES and EUR/VES). Rates are updated daily at 23:00 America/Caracas (Mon–Fri). Weekend and holiday dates return propagated rates with `is_propagated: true`.',
 
   // ===== tags =====
   'Consultas de tasas de cambio': 'Exchange rate queries',

@@ -9,6 +9,8 @@ import { lastUpdated } from './lastUpdated.js';
 import { parallelLatest } from './parallel.latest.js';
 import { parallelHistory } from './parallel.history.js';
 import { parallelDaily } from './parallel.daily.js';
+import { interventionLatest } from './intervention.latest.js';
+import { interventionHistory } from './intervention.history.js';
 import { adminTriggerIngest } from './admin.triggerIngest.js';
 import { adminReingest } from './admin.reingest.js';
 import { adminKeysList } from './admin.keys.list.js';
@@ -31,6 +33,8 @@ export function buildV1(): OpenAPIHono {
   v1.route('/', parallelLatest);
   v1.route('/', parallelHistory);
   v1.route('/', parallelDaily);
+  v1.route('/', interventionLatest);
+  v1.route('/', interventionHistory);
   v1.route('/', keysRegister);
   v1.route('/', keysMeUsage);
   v1.route('/', keysMe);

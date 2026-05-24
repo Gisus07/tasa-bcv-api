@@ -11,14 +11,15 @@ import { closeDb, db } from '../db/client.js';
 import { logger } from '../logger.js';
 import { runBackfill, type BackfillOptions } from './backfill.js';
 import { runDailyUpdate } from './dailyUpdate.js';
+import { runInterventionBackfill } from './interventionBackfill.js';
 
-type JobName = 'backfill' | 'daily' | 'retry';
+type JobName = 'backfill' | 'daily' | 'retry' | 'intervention-backfill';
 
 function parseArgs(argv: string[]): { job: JobName; options: BackfillOptions } {
   const job = argv[2] as JobName | undefined;
-  if (!job || !['backfill', 'daily', 'retry'].includes(job)) {
+  if (!job || !['backfill', 'daily', 'retry', 'intervention-backfill'].includes(job)) {
     // eslint-disable-next-line no-console
-    console.error('Usage: tsx src/jobs/runner.ts <backfill|daily|retry> [--from-year=YYYY] [--to-year=YYYY] [--concurrency=N]');
+    console.error('Usage: tsx src/jobs/runner.ts <backfill|daily|retry|intervention-backfill> [--from-year=YYYY] [--to-year=YYYY] [--concurrency=N]');
     process.exit(1);
   }
 
@@ -44,6 +45,8 @@ async function main(): Promise<void> {
       await runBackfill(d, options);
     } else if (job === 'daily') {
       await runDailyUpdate(d, 'daily');
+    } else if (job === 'intervention-backfill') {
+      await runInterventionBackfill(d);
     } else {
       await runDailyUpdate(d, 'retry');
     }

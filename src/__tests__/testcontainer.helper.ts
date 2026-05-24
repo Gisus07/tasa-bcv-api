@@ -59,6 +59,6 @@ export async function stopTestDb(): Promise<void> {
  */
 export async function clearTables(d: NodePgDatabase<typeof schema>): Promise<void> {
   await d.execute(
-    sql`TRUNCATE TABLE rates, ingest_runs, api_keys, api_key_usage_daily RESTART IDENTITY CASCADE`,
+    sql`TRUNCATE TABLE rates, ingest_runs, api_keys, api_key_usage_daily, parallel_rates, interventions RESTART IDENTITY CASCADE`,
   );
 }

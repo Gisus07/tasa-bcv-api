@@ -65,6 +65,7 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | Sin scraping | Las fuentes son los XLS oficiales del BCV + un scraping mínimo de la homepage para la tasa del día |
 | Propagación inteligente | Fines de semana y feriados heredan la última tasa hábil — el campo `propagated_currencies` lo señala |
 | Tasa paralela (Binance) | "Dólar Binance" USDT/VES desde Binance P2P: **tasa en vivo**, histórico horario y velas diarias OHLC |
+| Intervención cambiaria | Tipo de cambio Bs./EUR de las intervenciones del BCV (≈3/semana), con histórico desde 2019 |
 | Documentación bilingüe | `/docs` en español por defecto, `/docs/en` en inglés, auto-detect por `Accept-Language` |
 | Code samples integrados | Snippets listos en curl, JavaScript, TypeScript, Python, PHP y Go en la doc |
 | API keys gratuitas | Registro abierto en `/v1/keys/register` para subir el límite a 300 req/min |
@@ -86,6 +87,8 @@ Este proyecto es una **API REST pública, gratuita y mantenida** que resuelve es
 | `GET` | `/v1/parallel/latest` | opcional | Tasa paralela actual (Binance P2P, USDT/VES) |
 | `GET` | `/v1/parallel/history?from&to` | opcional | Histórico horario de la paralela (máx 31 días) |
 | `GET` | `/v1/parallel/daily?from&to` | opcional | Velas diarias OHLC de la paralela (máx 365 días) |
+| `GET` | `/v1/intervention/latest` | opcional | Última intervención cambiaria del BCV (Bs./EUR) |
+| `GET` | `/v1/intervention/history?from&to` | opcional | Histórico de intervenciones (máx 366 días) |
 | `POST` | `/v1/keys/register` | – | Registrar API key (gratis, instantáneo) |
 | `GET` | `/v1/keys/me` | **key** | Metadata de mi key |
 | `GET` | `/v1/keys/me/usage?days=` | **key** | Histograma diario de uso |
@@ -130,6 +133,21 @@ curl https://tasa-bcv-api-production.up.railway.app/v1/parallel/latest
 ```
 
 > **El histórico arranca en el lanzamiento.** A diferencia de las tasas del BCV (con archivos oficiales desde 2016), **no existe una fuente fiable del pasado de Binance P2P**. Por eso el histórico de la paralela se construye **desde cero**: un snapshot cada hora desde que la API entró en producción (**23 may 2026**). `/history` y `/daily` crecen con el tiempo; `/latest` siempre está disponible porque se consulta en vivo. No hay apertura/cierre de mercado — es 24/7, así que las velas diarias usan el día de calendario (Caracas).
+
+## 🏦 Intervención cambiaria
+
+Cuando el BCV interviene en el mercado (≈3 veces por semana, en la mañana), publica un **tipo de cambio de intervención en Bs./EUR**. Es una **serie independiente**: no coincide con la tasa oficial USD/EUR ni se deriva de ella (suele ir más cerca del mercado paralelo).
+
+| Endpoint | Qué da |
+|---|---|
+| `/v1/intervention/latest` | Última intervención: `date`, `intervention_number`, `rate` (Bs./EUR) |
+| `/v1/intervention/history?from&to` | Histórico de intervenciones en un rango (máx 366 días) |
+
+```bash
+curl https://tasa-bcv-api-production.up.railway.app/v1/intervention/latest
+```
+
+> **¿Hubo intervención hoy?** No todos los días hay. El campo `date` indica cuándo fue la última; compáralo con la fecha de hoy. El histórico va **desde el 13 may 2019** (lo que el BCV publica) e incluye solo los días en que efectivamente intervino — no se propaga. El tipo de cambio es **Bs./EUR**, no Bs./USD; si necesitas la tasa oficial de esa fecha, crúzala con `/v1/rates/{date}`.
 
 ## 🛠️ Stack
 
