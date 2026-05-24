@@ -33,7 +33,14 @@ const envSchema = z.object({
       'https://www.bcv.org.ve/sites/default/files/EstadisticasGeneral/2_1_2{trim}{yy}_otrasmonedas.xls',
     ),
 
-  CRON_DAILY_AT: cronExpression.default('0 0 * * 1-5'),
+  /**
+   * Daily ingest at 23:00 Caracas (Mon-Fri). By then the BCV has published the
+   * next business day's rate, so the daily captures it and propagates the gap
+   * forward up to the day before that future rate — covering weekends and
+   * holidays in one shot. Running at 00:00 missed the future rate and left
+   * weekends unpropagated until the next weekday cron.
+   */
+  CRON_DAILY_AT: cronExpression.default('0 23 * * 1-5'),
   CRON_RETRY_AT: cronExpression.default('0 8 * * 1-5'),
   /** Parallel (Binance P2P) snapshot — hourly, every day (it's a 24/7 market). */
   CRON_PARALLEL_AT: cronExpression.default('0 * * * *'),

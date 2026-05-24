@@ -55,6 +55,30 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
     expect(tue?.rate).toBe('512.00000000');
   });
 
+  it('propagates forward up to a future published rate (anticipated weekend fill)', async () => {
+    // The 23:00 daily already knows the next business day's rate, so the
+    // propagation window ends on a FUTURE real row. Friday 22 real, Monday 25
+    // real (published Friday night); Sat 23 / Sun 24 must be filled from Friday.
+    await upsertRates(env.db, [
+      { date: '2026-05-22', currency: USD, rate: '526.00000000', sourceFile: 'x' },
+      { date: '2026-05-25', currency: USD, rate: '528.00000000', sourceFile: 'x' },
+    ]);
+
+    const n = await propagateGaps(env.db, USD, '2026-05-22', '2026-05-25');
+    expect(n).toBe(2); // 23, 24
+
+    for (const day of ['2026-05-23', '2026-05-24']) {
+      const row = await getByDate(env.db, day, USD);
+      expect(row?.isPropagated).toBe(true);
+      expect(row?.propagatedFrom).toBe('2026-05-22');
+      expect(row?.rate).toBe('526.00000000');
+    }
+    // The future Monday rate stays real and untouched.
+    const mon = await getByDate(env.db, '2026-05-25', USD);
+    expect(mon?.isPropagated).toBe(false);
+    expect(mon?.rate).toBe('528.00000000');
+  });
+
   it('seeds from the last real rate before the window', async () => {
     await upsertRates(env.db, [
       { date: '2026-05-15', currency: USD, rate: '510.00000000', sourceFile: 'x' },

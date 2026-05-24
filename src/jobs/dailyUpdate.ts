@@ -66,17 +66,25 @@ export async function runDailyUpdate(
     totalFiles += usdRecent.filesFetched;
 
     // Fill any gaps from the last real rate (or the last 7 days, whichever is
-    // older) up to today. Adapting the window to the last real row means an
-    // outage longer than a week still gets fully back-propagated (C1).
+    // older) up to the day before the *next* real rate. At 23:00 the BCV has
+    // already published the next business day's rate, so `lastReal` can sit in
+    // the future (Friday night already knows Monday's, or Tuesday's when Monday
+    // is a holiday). Propagating up to it carries the current rate across the
+    // weekend/holiday in one shot, instead of leaving those days empty until a
+    // later cron — which was the `/latest` "stuck on a past date" bug. Adapting
+    // the start to the last real row keeps a >1 week outage fully back-propagated.
     const fixedStart = addDays(today, -7);
     const windowStartFor = (lastReal: string | undefined): string =>
       lastReal && lastReal < fixedStart ? lastReal : fixedStart;
+    // Propagate up to the future published rate when there is one, else today.
+    const windowEndFor = (lastReal: string | undefined): string =>
+      lastReal && lastReal > today ? lastReal : today;
     const [lastRealUsd, lastRealEur] = await Promise.all([
       getLatestRealDate(d, 'USD'),
       getLatestRealDate(d, 'EUR'),
     ]);
-    totalUpserted += await propagateGaps(d, 'USD', windowStartFor(lastRealUsd), today);
-    totalUpserted += await propagateGaps(d, 'EUR', windowStartFor(lastRealEur), today);
+    totalUpserted += await propagateGaps(d, 'USD', windowStartFor(lastRealUsd), windowEndFor(lastRealUsd));
+    totalUpserted += await propagateGaps(d, 'EUR', windowStartFor(lastRealEur), windowEndFor(lastRealEur));
 
     const usdToday = await getByDate(d, today, 'USD');
     const eurToday = await getByDate(d, today, 'EUR');

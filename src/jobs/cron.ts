@@ -13,7 +13,8 @@ let parallelTask: ScheduledTask | undefined;
 
 /**
  * Schedules the cron jobs:
- *  - Daily ingest at `CRON_DAILY_AT` (default Mon-Fri 00:00 Caracas).
+ *  - Daily ingest at `CRON_DAILY_AT` (default Mon-Fri 23:00 Caracas) — by then the
+ *    BCV has published the next business day's rate, so gaps propagate forward.
  *  - Retry at `CRON_RETRY_AT` (default Mon-Fri 08:00) if today's real rate is missing.
  *  - Parallel (Binance) snapshot at `CRON_PARALLEL_AT` (default hourly, every day).
  *
