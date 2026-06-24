@@ -115,7 +115,7 @@ async function main(): Promise<void> {
     if (shuttingDown) return;
     shuttingDown = true;
     log.info({ signal }, 'graceful shutdown started');
-    stopCron();
+    await stopCron();
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => {
         log.warn('server close timed out after 10s; forcing shutdown');
