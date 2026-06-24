@@ -12,7 +12,10 @@ concurrency:
 
 jobs:
   test:
-    name: lint + typecheck + tests + build
+    # NOTE: el nombre del job es el "context" que exige la branch protection de
+    # main. Aunque ahora también corra lint + format, NO lo renombres sin
+    # actualizar la regla de protección, o quedará exigiendo un check inexistente.
+    name: typecheck + tests + build
     runs-on: ubuntu-latest
 
     env:
