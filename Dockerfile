@@ -8,7 +8,9 @@ WORKDIR /app
 RUN corepack enable
 
 # Install all dependencies first (cached unless lockfile changes).
-COPY package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml carries the security overrides; without it,
+# --frozen-lockfile aborts with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Compile the TypeScript sources.
@@ -34,7 +36,8 @@ RUN corepack enable
 
 # Install only production dependencies. The lockfile guarantees identical
 # versions to the builder stage; we just skip dev deps to keep the image small.
-COPY --chown=node:node package.json pnpm-lock.yaml ./
+# pnpm-workspace.yaml must be present here too (security overrides + frozen check).
+COPY --chown=node:node package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile --prod && \
     pnpm store prune
 
