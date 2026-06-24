@@ -11,7 +11,10 @@ const route = createRoute({
   path: '/rates/usd',
   tags: ['rates'],
   summary: 'Tasa USD (la más reciente por defecto, o para una fecha dada)',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/usd' }) } as Record<string, unknown>),
+  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/usd' }) } as Record<
+    string,
+    unknown
+  >),
   request: { query: SingleCurrencyQuery },
   responses: {
     200: {

@@ -71,7 +71,10 @@ export async function fetchBcv(
 ): Promise<FetchResult | null> {
   const host = new URL(url).hostname;
   if (!ALLOWED_INSECURE_HOSTS.has(host)) {
-    throw new UpstreamUnavailableError(`fetchBcv: host no permitido "${host}"`, { host });
+    throw new UpstreamUnavailableError(
+      `fetchBcv: host no permitido "${host}"`,
+      { host },
+    );
   }
   let response;
   let attempt = 0;
@@ -90,13 +93,19 @@ export async function fetchBcv(
       });
       break;
     } catch (err) {
-      const e = err as { code?: string; cause?: unknown; errors?: unknown } & Error;
+      const e = err as {
+        code?: string;
+        cause?: unknown;
+        errors?: unknown;
+      } & Error;
       const cause = e.cause as { code?: string; message?: string } | undefined;
       const code = e.code ?? cause?.code;
 
       const canRetry =
         attempt < RETRY_BACKOFF_MS.length &&
-        (code === undefined || RETRYABLE_CODES.has(code) || RETRYABLE_CODES.has(cause?.code ?? ''));
+        (code === undefined ||
+          RETRYABLE_CODES.has(code) ||
+          RETRYABLE_CODES.has(cause?.code ?? ''));
 
       if (!canRetry) {
         throw new UpstreamUnavailableError(`Network error fetching ${url}`, {

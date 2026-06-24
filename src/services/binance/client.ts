@@ -33,7 +33,9 @@ export function median(values: number[]): number {
   if (values.length === 0) throw new Error('median of empty array');
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1]! + sorted[mid]!) / 2
+    : sorted[mid]!;
 }
 
 function round8(n: number): number {
@@ -64,7 +66,8 @@ async function fetchPrices(side: P2pSide): Promise<number[]> {
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) tasa-bcv-api/0.3.0',
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) tasa-bcv-api/0.3.0',
         },
         body,
         signal: AbortSignal.timeout(20_000),
@@ -74,7 +77,8 @@ async function fetchPrices(side: P2pSide): Promise<number[]> {
       const prices = (json.data ?? [])
         .map((d) => Number(d.adv?.price))
         .filter((n) => Number.isFinite(n) && n > 0);
-      if (prices.length === 0) throw new Error('Binance P2P returned no usable prices');
+      if (prices.length === 0)
+        throw new Error('Binance P2P returned no usable prices');
       return prices;
     } catch (err) {
       if (attempt >= RETRY_BACKOFF_MS.length) {
@@ -82,7 +86,11 @@ async function fetchPrices(side: P2pSide): Promise<number[]> {
       }
       const delay = RETRY_BACKOFF_MS[attempt]!;
       log.warn(
-        { attempt: attempt + 1, nextDelayMs: delay, err: err instanceof Error ? err.message : err },
+        {
+          attempt: attempt + 1,
+          nextDelayMs: delay,
+          err: err instanceof Error ? err.message : err,
+        },
         'transient Binance P2P failure; retrying',
       );
       await sleep(delay);
@@ -96,7 +104,10 @@ async function fetchPrices(side: P2pSide): Promise<number[]> {
  * Both sides are fetched in parallel.
  */
 export async function getParallelSnapshot(): Promise<ParallelSnapshot> {
-  const [buyPrices, sellPrices] = await Promise.all([fetchPrices('BUY'), fetchPrices('SELL')]);
+  const [buyPrices, sellPrices] = await Promise.all([
+    fetchPrices('BUY'),
+    fetchPrices('SELL'),
+  ]);
   const buy = round8(median(buyPrices));
   const sell = round8(median(sellPrices));
   const average = round8((buy + sell) / 2);

@@ -3,7 +3,10 @@ import { db } from '../../db/client.js';
 import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { ErrorResponse } from '../../schemas/common.js';
-import { ParallelDailyResponse, ParallelRangeQuery } from '../../schemas/parallel.js';
+import {
+  ParallelDailyResponse,
+  ParallelRangeQuery,
+} from '../../schemas/parallel.js';
 import { getParallelDailyRange } from '../../services/parallel.service.js';
 
 const route = createRoute({

@@ -16,7 +16,9 @@ const getRoute = createRoute({
     'Devuelve metadata de la key que se está usando para autenticar la llamada: ' +
     'prefijo visible, nombre, email, tier, fecha de creación, última vez usada y request count.',
   security: [{ bearerAuth: [] }],
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/keys/me', bearer: true }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/keys/me', bearer: true }),
+  } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Información de la API key',
@@ -52,13 +54,17 @@ const deleteRoute = createRoute({
     'El dueño de la key se auto-revoca. La key deja de funcionar de inmediato — siguientes requests con ella devuelven 401. Operación idempotente y final: una vez revocada, no se puede reactivar; hay que registrar una nueva.',
   security: [{ bearerAuth: [] }],
   ...({
-    'x-codeSamples': codeSamplesFor({ path: '/v1/keys/me', method: 'POST', bearer: true }).map(
-      (s) => ({
-        ...s,
-        // codeSamplesFor doesn't have a DELETE preset; tweak the curl manually.
-        source: s.source.replace('-X POST', '-X DELETE').replace(/POST/g, 'DELETE'),
-      }),
-    ),
+    'x-codeSamples': codeSamplesFor({
+      path: '/v1/keys/me',
+      method: 'POST',
+      bearer: true,
+    }).map((s) => ({
+      ...s,
+      // codeSamplesFor doesn't have a DELETE preset; tweak the curl manually.
+      source: s.source
+        .replace('-X POST', '-X DELETE')
+        .replace(/POST/g, 'DELETE'),
+    })),
   } as Record<string, unknown>),
   responses: {
     200: {
@@ -69,7 +75,8 @@ const deleteRoute = createRoute({
           example: {
             revoked: true,
             id: 1,
-            message: 'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
+            message:
+              'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
           },
         },
       },
@@ -83,7 +90,7 @@ const deleteRoute = createRoute({
 
 export const keysMe = new OpenAPIHono({ defaultHook: defaultZodHook });
 
-keysMe.openapi(getRoute, async (c) => {
+keysMe.openapi(getRoute, (c) => {
   const apiKey = c.var.apiKey;
   if (!apiKey) {
     throw new UnauthorizedError(
@@ -119,7 +126,8 @@ keysMe.openapi(deleteRoute, async (c) => {
     {
       revoked: true,
       id: apiKey.id,
-      message: 'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
+      message:
+        'Tu API key fue revocada. Registra una nueva si necesitas seguir consumiendo la API.',
     },
     200,
   );

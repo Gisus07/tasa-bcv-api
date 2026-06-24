@@ -11,23 +11,29 @@
  */
 export const ES_TO_EN: Record<string, string> = {
   // ===== parallel (Binance P2P, v0.3.0) =====
-  'Tasa paralela en vivo (Binance P2P, USDT/VES)': 'Live parallel rate (Binance P2P, USDT/VES)',
+  'Tasa paralela en vivo (Binance P2P, USDT/VES)':
+    'Live parallel rate (Binance P2P, USDT/VES)',
   'Tasa paralela actual ("dólar Binance", USDT/VES) consultada en vivo desde Binance P2P (cache de 30s). Mediana del top-10 de ofertas. `buy` = Bs para comprar 1 USDT, `sell` = al vender, `average` = referencia. Si Binance no responde, devuelve el último snapshot horario almacenado.':
     'Current parallel rate ("Binance dollar", USDT/VES) fetched live from Binance P2P (30s cache). Median of the top-10 ads. `buy` = Bs to buy 1 USDT, `sell` = when selling, `average` = reference. If Binance is unreachable, returns the last stored hourly snapshot.',
   'Tasa paralela actual': 'Current parallel rate',
-  'Sin datos (Binance no responde y no hay snapshots aún)': 'No data (Binance unreachable and no snapshots yet)',
-  'Histórico horario de la tasa paralela': 'Hourly history of the parallel rate',
+  'Sin datos (Binance no responde y no hay snapshots aún)':
+    'No data (Binance unreachable and no snapshots yet)',
+  'Histórico horario de la tasa paralela':
+    'Hourly history of the parallel rate',
   'Snapshots horarios de la tasa paralela (Binance P2P) en un rango de fechas (YYYY-MM-DD). Máximo 31 días por request; para rangos mayores usa /v1/parallel/daily.':
     'Hourly snapshots of the parallel rate (Binance P2P) over a date range (YYYY-MM-DD). Max 31 days per request; for larger ranges use /v1/parallel/daily.',
   'Snapshots horarios en el rango': 'Hourly snapshots in the range',
   'Rango inválido o mayor a 31 días': 'Invalid range or larger than 31 days',
-  'Agregación diaria (OHLC) de la tasa paralela': 'Daily (OHLC) aggregation of the parallel rate',
+  'Agregación diaria (OHLC) de la tasa paralela':
+    'Daily (OHLC) aggregation of the parallel rate',
   'Velas diarias (open/high/low/close + promedio) de la tasa paralela, agregadas por día del calendario de Caracas. Ideal para gráficas largas. Máximo 365 días por request.':
     'Daily candles (open/high/low/close + average) of the parallel rate, aggregated by Caracas calendar day. Ideal for long charts. Max 365 days per request.',
   'Velas diarias en el rango': 'Daily candles in the range',
   'Rango inválido o mayor a 365 días': 'Invalid range or larger than 365 days',
-  'Bs para comprar 1 USDT (mediana top-10)': 'Bs to buy 1 USDT (median of top-10)',
-  'Bs al vender 1 USDT (mediana top-10)': 'Bs when selling 1 USDT (median of top-10)',
+  'Bs para comprar 1 USDT (mediana top-10)':
+    'Bs to buy 1 USDT (median of top-10)',
+  'Bs al vender 1 USDT (mediana top-10)':
+    'Bs when selling 1 USDT (median of top-10)',
 
   // ===== intervention (BCV, v1.0.0) =====
   'Última intervención cambiaria del BCV': 'Latest BCV exchange intervention',
@@ -40,18 +46,21 @@ export const ES_TO_EN: Record<string, string> = {
     'BCV exchange interventions (rate in Bs./EUR) over a date range (YYYY-MM-DD). Max 366 days per request. Only days on which the BCV actually intervened appear.',
   'Intervenciones en el rango': 'Interventions in the range',
   'Rango inválido o mayor a 366 días': 'Invalid range or larger than 366 days',
-  'Tipo de cambio de la intervención, Bs. por EUR': 'Intervention exchange rate, Bs. per EUR',
+  'Tipo de cambio de la intervención, Bs. por EUR':
+    'Intervention exchange rate, Bs. per EUR',
 
   // ===== schemas/common.ts =====
   'Fecha ISO YYYY-MM-DD': 'ISO date YYYY-MM-DD',
   'Código ISO 4217 de la moneda': 'ISO 4217 currency code',
-  'Filtro de moneda; "all" devuelve ambas': 'Currency filter; "all" returns both',
+  'Filtro de moneda; "all" devuelve ambas':
+    'Currency filter; "all" returns both',
   'La fecha 2030-01-01 está en el futuro.': 'Date 2030-01-01 is in the future.',
   'La fecha debe estar en formato YYYY-MM-DD y ser un día válido del calendario gregoriano':
     'Date must be in YYYY-MM-DD format and a real Gregorian calendar day',
 
   // ===== schemas/rates.ts =====
-  'Tasa de venta oficial publicada por el BCV': 'Official sell rate published by BCV',
+  'Tasa de venta oficial publicada por el BCV':
+    'Official sell rate published by BCV',
   'Solo aparece cuando el valor fue heredado (fin de semana o feriado). En días con publicación real este campo no se incluye.':
     'Only appears when the value was inherited (weekend or holiday). On days with an actual publication this field is omitted.',
   'Fecha origen de la propagación. Solo presente cuando `is_propagated` lo está.':
@@ -81,7 +90,8 @@ export const ES_TO_EN: Record<string, string> = {
     'No rates available yet (run backfill or daily)',
 
   // ===== routes/v1/rates.byDate.ts =====
-  'Tasas USD y EUR para una fecha específica': 'USD and EUR rates for a specific date',
+  'Tasas USD y EUR para una fecha específica':
+    'USD and EUR rates for a specific date',
   'Devuelve ambas monedas para la fecha indicada. Fines de semana y feriados se devuelven con `propagated_currencies` indicando qué monedas se heredaron del último día hábil.':
     'Returns both currencies for the given date. Weekends and holidays come back with `propagated_currencies` indicating which currencies were inherited from the previous business day.',
   'Tasas para la fecha solicitada': 'Rates for the requested date',
@@ -112,7 +122,8 @@ export const ES_TO_EN: Record<string, string> = {
   'No se encontró tasa EUR': 'No EUR rate found',
 
   // ===== routes/v1/lastUpdated.ts =====
-  'Timestamp de la última ingesta exitosa': 'Timestamp of the last successful ingest',
+  'Timestamp de la última ingesta exitosa':
+    'Timestamp of the last successful ingest',
   'Útil para monitoreo. Si este valor no avanza durante >36h, el job diario probablemente está fallando.':
     'Useful for monitoring. If this value stops advancing for >36 h, the daily job is probably broken.',
   'Detalles del último run exitoso': 'Details of the last successful run',
@@ -121,20 +132,22 @@ export const ES_TO_EN: Record<string, string> = {
   'Dispara una ingesta diaria manualmente': 'Manually trigger a daily ingest',
   'Endpoint protegido con bearer token que fuerza un daily-update sin esperar al cron. Útil cuando el run programado falla o para refrescar tras un deploy. Devuelve 202 porque el job corre en background.':
     'Bearer-token-protected endpoint that forces a daily-update without waiting for the cron. Useful when the scheduled run failed or to refresh after a deploy. Returns 202 because the job runs in the background.',
-  'Job iniciado (o finalizado, si `await=true`)': 'Job started (or finished, if `await=true`)',
+  'Job iniciado (o finalizado, si `await=true`)':
+    'Job started (or finished, if `await=true`)',
   'Token admin faltante o inválido': 'Missing or invalid admin token',
 
   // ===== routes/health.ts =====
   'Comprobación de disponibilidad de la API y conectividad con la base de datos':
     'API liveness and database reachability check',
-  'La API y la base de datos están disponibles': 'The API and the database are reachable',
+  'La API y la base de datos están disponibles':
+    'The API and the database are reachable',
   'La base de datos no está disponible': 'The database is unreachable',
 
   // ===== routes/v1/keys.* =====
   'Gestión de API keys del tier Free': 'Free-tier API key management',
   'Crear una API key del tier Free (gratis)': 'Create a Free-tier API key',
   'Auto-registro público. Devuelve la API key en texto plano UNA SOLA VEZ. Guárdala — no la podemos mostrar de nuevo, solo el prefijo visible. La key da derecho a 300 req/min (vs 30 req/min sin key). Sin verificación de email por ahora — si abusan, se revoca.':
-    'Public self-registration. Returns the API key in plaintext ONLY ONCE. Save it — we can\'t show it again, only the visible prefix. The key grants 300 req/min (vs 30 req/min without a key). No email verification for now — abusers get revoked.',
+    "Public self-registration. Returns the API key in plaintext ONLY ONCE. Save it — we can't show it again, only the visible prefix. The key grants 300 req/min (vs 30 req/min without a key). No email verification for now — abusers get revoked.",
   'API key creada. Guarda `key` ahora mismo — solo se muestra una vez.':
     'API key created. Save `key` right now — it is shown only once.',
   'Entrada inválida (email mal formado, campos faltantes, etc.)':
@@ -143,7 +156,8 @@ export const ES_TO_EN: Record<string, string> = {
     'The plaintext API key. Save it NOW — shown only this time.',
   'Prefijo visible que identifica la key (sin exponer el secreto).':
     'Visible prefix that identifies the key (without exposing the secret).',
-  'Descripción opcional del uso planeado': 'Optional description of the intended use',
+  'Descripción opcional del uso planeado':
+    'Optional description of the intended use',
   'El email debe tener un formato válido': 'Email must have a valid format',
   'Info de mi API key': 'Info about my API key',
   'Devuelve metadata de la key que se está usando para autenticar la llamada: prefijo visible, nombre, email, tier, fecha de creación, última vez usada y request count.':
@@ -182,7 +196,8 @@ export const ES_TO_EN: Record<string, string> = {
   'Solicitud fallida': 'Request failed',
 
   // ===== usage histogram =====
-  'Histograma diario de uso de mi API key': 'Daily usage histogram for my API key',
+  'Histograma diario de uso de mi API key':
+    'Daily usage histogram for my API key',
   'Devuelve el conteo de requests por día en la ventana solicitada (default 30 días). Los días sin requests no aparecen — el cliente debe asumir 0 para los faltantes si necesita una serie completa. Ideal para gráficas de uso semanales o mensuales.':
     'Returns the request count per day within the requested window (default 30 days). Days with no requests are absent — clients should assume 0 for missing ones if a full series is needed. Ideal for weekly or monthly usage charts.',
   'Histograma diario': 'Daily histogram',
@@ -200,7 +215,10 @@ export const ES_TO_EN: Record<string, string> = {
  * in `map`. Pure: never mutates the input. Used to produce the EN spec from
  * the canonical ES spec.
  */
-export function translateSpec(input: unknown, map: Record<string, string>): unknown {
+export function translateSpec(
+  input: unknown,
+  map: Record<string, string>,
+): unknown {
   function walk(node: unknown): unknown {
     if (typeof node === 'string') return map[node] ?? node;
     if (Array.isArray(node)) return node.map(walk);

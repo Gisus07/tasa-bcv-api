@@ -1,5 +1,8 @@
 import { load } from 'cheerio';
-import { UpstreamFormatError, UpstreamUnavailableError } from '../../lib/errors.js';
+import {
+  UpstreamFormatError,
+  UpstreamUnavailableError,
+} from '../../lib/errors.js';
 import { fetchBcv } from './client.js';
 import { bcvHomeUrl } from './urls.js';
 import type { RateRecord } from './types.js';
@@ -75,7 +78,9 @@ function parseBcvDecimal(input: string, currency: string): string {
   const cleaned = input.trim().replace(/\./g, '').replace(',', '.');
   const value = Number(cleaned);
   if (!Number.isFinite(value) || value <= 0) {
-    throw new UpstreamFormatError(`Invalid ${currency} rate on homepage: "${input}"`);
+    throw new UpstreamFormatError(
+      `Invalid ${currency} rate on homepage: "${input}"`,
+    );
   }
   return value.toFixed(8);
 }
@@ -84,7 +89,9 @@ function parseBcvDecimal(input: string, currency: string): string {
 function parseIsoFromAttr(attr: string): string {
   const match = attr.match(/^(\d{4}-\d{2}-\d{2})/);
   if (!match) {
-    throw new UpstreamFormatError(`Invalid date attribute on homepage: "${attr}"`);
+    throw new UpstreamFormatError(
+      `Invalid date attribute on homepage: "${attr}"`,
+    );
   }
   return match[1]!;
 }

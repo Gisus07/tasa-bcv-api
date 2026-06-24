@@ -30,7 +30,9 @@ describe('parseUsdWorkbook', () => {
 
   it('skips the Module1 VBA sheet', () => {
     // sourceFile is sheet-qualified, so a Module1-derived record would surface here.
-    expect(records.find((r) => r.sourceFile.endsWith('#Module1'))).toBeUndefined();
+    expect(
+      records.find((r) => r.sourceFile.endsWith('#Module1')),
+    ).toBeUndefined();
   });
 
   it('covers every year sheet present in the workbook (2016 → 2026)', () => {

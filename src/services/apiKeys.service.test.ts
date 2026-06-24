@@ -20,7 +20,9 @@ describe('apiKeys.service crypto primitives', () => {
     });
 
     it('emits a different key on each call (entropy sanity)', () => {
-      const keys = new Set(Array.from({ length: 50 }, () => generatePlainKey()));
+      const keys = new Set(
+        Array.from({ length: 50 }, () => generatePlainKey()),
+      );
       expect(keys.size).toBe(50);
     });
   });
@@ -44,7 +46,9 @@ describe('apiKeys.service crypto primitives', () => {
 
   describe('visiblePrefix', () => {
     it('keeps the first 12 characters', () => {
-      expect(visiblePrefix('tbk_a1b2c3d4e5f6789012345678abcdef')).toBe('tbk_a1b2c3d4');
+      expect(visiblePrefix('tbk_a1b2c3d4e5f6789012345678abcdef')).toBe(
+        'tbk_a1b2c3d4',
+      );
     });
 
     it('handles keys exactly at the threshold', () => {

@@ -7,7 +7,9 @@ import { parseEurWorkbook, parseEurWorkbookSafe } from './parser.eur.js';
 const fixture = readFileSync(resolve('fixtures/2_1_2b26_otrasmonedas.xls'));
 const fixture2021 = readFileSync(resolve('fixtures/2_1_2d21_otrasmonedas.xls'));
 const fixture2020 = readFileSync(resolve('fixtures/2_1_2d20_otrasmonedas.xls'));
-const fixture2020Q1 = readFileSync(resolve('fixtures/2_1_2a20_otrasmonedas.xls'));
+const fixture2020Q1 = readFileSync(
+  resolve('fixtures/2_1_2a20_otrasmonedas.xls'),
+);
 
 describe('parseEurWorkbook', () => {
   const records = parseEurWorkbook(fixture, '2_1_2b26_otrasmonedas.xls');
@@ -92,7 +94,10 @@ describe('parseEurWorkbook (early 2020 layout: "Bs.S/M.E" — bolívar soberano)
     // Pre-redenomination naming: the bolívar was "Bs.S" (Soberano) and the
     // Bs./M.E. header included an extra "S": "Bs.S/M.E". Today it would be
     // "Bs./M.E.". The anchor regex must accept both.
-    const records = parseEurWorkbook(fixture2020Q1, '2_1_2a20_otrasmonedas.xls');
+    const records = parseEurWorkbook(
+      fixture2020Q1,
+      '2_1_2a20_otrasmonedas.xls',
+    );
     expect(records.length).toBeGreaterThan(40);
 
     // Spot-check 26/03/2020 → Fecha Valor 27/03/2020 → EUR Venta 81349.02768139.
@@ -106,7 +111,10 @@ describe('parseEurWorkbook (early 2020 layout: "Bs.S/M.E" — bolívar soberano)
 
 describe('parseEurWorkbookSafe', () => {
   it('returns parsed records plus a list of skipped sheets without throwing', () => {
-    const { records, skipped } = parseEurWorkbookSafe(fixture, '2_1_2b26_otrasmonedas.xls');
+    const { records, skipped } = parseEurWorkbookSafe(
+      fixture,
+      '2_1_2b26_otrasmonedas.xls',
+    );
     expect(records.length).toBeGreaterThan(20);
     expect(Array.isArray(skipped)).toBe(true);
     // Our healthy Q2 2026 fixture should not skip anything.
@@ -115,7 +123,10 @@ describe('parseEurWorkbookSafe', () => {
 
   it('skips a date-named sheet missing "Fecha Valor" instead of throwing', () => {
     const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['sin fecha valor'], ['EUR', 'x', 1, 1, 1, 1]]);
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['sin fecha valor'],
+      ['EUR', 'x', 1, 1, 1, 1],
+    ]);
     XLSX.utils.book_append_sheet(wb, ws, '01012026');
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xls' }) as Buffer;
 

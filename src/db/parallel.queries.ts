@@ -29,7 +29,9 @@ export async function insertParallelSnapshot(
 }
 
 /** Most recent snapshot (there is no "future" here — it's a live market). */
-export async function getLatestParallel(d: Database): Promise<ParallelRate | undefined> {
+export async function getLatestParallel(
+  d: Database,
+): Promise<ParallelRate | undefined> {
   const rows = await d
     .select()
     .from(parallelRates)
@@ -47,7 +49,9 @@ export async function getParallelHistory(
   return d
     .select()
     .from(parallelRates)
-    .where(and(gte(parallelRates.timestamp, from), lte(parallelRates.timestamp, to)))
+    .where(
+      and(gte(parallelRates.timestamp, from), lte(parallelRates.timestamp, to)),
+    )
     .orderBy(asc(parallelRates.timestamp));
 }
 

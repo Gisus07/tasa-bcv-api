@@ -34,8 +34,18 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
   it('carries the last real rate forward across a weekend + holiday gap', async () => {
     // Friday 15 real, Tuesday 19 real; Sat 16 / Sun 17 / Mon 18 (holiday) missing.
     await upsertRates(env.db, [
-      { date: '2026-05-15', currency: USD, rate: '510.00000000', sourceFile: 'x' },
-      { date: '2026-05-19', currency: USD, rate: '512.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'x',
+      },
+      {
+        date: '2026-05-19',
+        currency: USD,
+        rate: '512.00000000',
+        sourceFile: 'x',
+      },
     ]);
 
     const n = await propagateGaps(env.db, USD, '2026-05-15', '2026-05-19');
@@ -60,8 +70,18 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
     // propagation window ends on a FUTURE real row. Friday 22 real, Monday 25
     // real (published Friday night); Sat 23 / Sun 24 must be filled from Friday.
     await upsertRates(env.db, [
-      { date: '2026-05-22', currency: USD, rate: '526.00000000', sourceFile: 'x' },
-      { date: '2026-05-25', currency: USD, rate: '528.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-22',
+        currency: USD,
+        rate: '526.00000000',
+        sourceFile: 'x',
+      },
+      {
+        date: '2026-05-25',
+        currency: USD,
+        rate: '528.00000000',
+        sourceFile: 'x',
+      },
     ]);
 
     const n = await propagateGaps(env.db, USD, '2026-05-22', '2026-05-25');
@@ -81,7 +101,12 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
 
   it('seeds from the last real rate before the window', async () => {
     await upsertRates(env.db, [
-      { date: '2026-05-15', currency: USD, rate: '510.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'x',
+      },
     ]);
 
     const n = await propagateGaps(env.db, USD, '2026-05-16', '2026-05-18');
@@ -94,9 +119,24 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
 
   it('is a no-op when the range is already fully populated with real rows', async () => {
     await upsertRates(env.db, [
-      { date: '2026-05-15', currency: USD, rate: '1.00000000', sourceFile: 'x' },
-      { date: '2026-05-16', currency: USD, rate: '2.00000000', sourceFile: 'x' },
-      { date: '2026-05-17', currency: USD, rate: '3.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '1.00000000',
+        sourceFile: 'x',
+      },
+      {
+        date: '2026-05-16',
+        currency: USD,
+        rate: '2.00000000',
+        sourceFile: 'x',
+      },
+      {
+        date: '2026-05-17',
+        currency: USD,
+        rate: '3.00000000',
+        sourceFile: 'x',
+      },
     ]);
 
     const n = await propagateGaps(env.db, USD, '2026-05-15', '2026-05-17');
@@ -107,7 +147,12 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
     // Reproduces the prod bug: backfill state had 14 real and 15-16 propagated
     // from 14; then the real Friday rate (15) arrived late and overwrote 15.
     await upsertRates(env.db, [
-      { date: '2026-05-14', currency: USD, rate: '510.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-14',
+        currency: USD,
+        rate: '510.00000000',
+        sourceFile: 'x',
+      },
       {
         date: '2026-05-15',
         currency: USD,
@@ -126,7 +171,12 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
       },
     ]);
     await upsertRates(env.db, [
-      { date: '2026-05-15', currency: USD, rate: '515.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '515.00000000',
+        sourceFile: 'x',
+      },
     ]);
 
     const n = await propagateGaps(env.db, USD, '2026-05-14', '2026-05-16');
@@ -146,7 +196,12 @@ describe('propagateGaps (real Postgres via testcontainers)', () => {
     // The daily window can start on a propagated day (e.g. min(today-7, lastReal)).
     // The seed must reach back to the real anchor before the window.
     await upsertRates(env.db, [
-      { date: '2026-05-15', currency: USD, rate: '515.00000000', sourceFile: 'x' },
+      {
+        date: '2026-05-15',
+        currency: USD,
+        rate: '515.00000000',
+        sourceFile: 'x',
+      },
       {
         date: '2026-05-16',
         currency: USD,

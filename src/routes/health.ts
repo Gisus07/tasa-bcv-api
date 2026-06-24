@@ -9,7 +9,8 @@ const route = createRoute({
   method: 'get',
   path: '/health',
   tags: ['system'],
-  summary: 'Comprobación de disponibilidad de la API y conectividad con la base de datos',
+  summary:
+    'Comprobación de disponibilidad de la API y conectividad con la base de datos',
   responses: {
     200: {
       description: 'La API y la base de datos están disponibles',
@@ -31,7 +32,10 @@ export const health = new OpenAPIHono({ defaultHook: defaultZodHook });
 // Railway's deploy healthcheck stays on /health (which also checks the DB =
 // readiness). (BE-5)
 health.get('/health/live', (c) =>
-  c.json({ status: 'ok', uptimeSeconds: Math.round((Date.now() - startedAt) / 1000) }),
+  c.json({
+    status: 'ok',
+    uptimeSeconds: Math.round((Date.now() - startedAt) / 1000),
+  }),
 );
 
 health.openapi(route, async (c) => {

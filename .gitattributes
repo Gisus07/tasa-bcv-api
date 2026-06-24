@@ -1,1 +1,20 @@
 docker-compose.test.yml merge=ours
+
+# Normaliza los fin de línea a LF dentro del repo.
+# Prettier asume LF y la app corre en Linux (CI + producción); así evitamos que
+# el checkout en Windows introduzca CRLF y haga pelear a Prettier/ESLint.
+* text=auto eol=lf
+
+# Los hooks de shell deben ser SIEMPRE LF para ejecutarse en Linux/Mac.
+*.sh text eol=lf
+.githooks/pre-commit text eol=lf
+.githooks/pre-push text eol=lf
+
+# Binarios y artefactos — git no debe tocar su contenido.
+*.png binary
+*.jpg binary
+*.ico binary
+*.xlsx binary
+*.xls binary
+*.tgz binary
+pnpm-lock.yaml -diff

@@ -3,7 +3,8 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 
 const databaseUrl =
-  process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/tasa_bcv_api';
+  process.env.DATABASE_URL ??
+  'postgresql://postgres:postgres@localhost:5432/tasa_bcv_api';
 
 const pool = new Pool({ connectionString: databaseUrl, max: 1 });
 

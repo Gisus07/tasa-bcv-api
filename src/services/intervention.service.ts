@@ -1,7 +1,14 @@
 import type { Database } from '../db/client.js';
-import { getInterventionHistory, getLatestIntervention } from '../db/intervention.queries.js';
+import {
+  getInterventionHistory,
+  getLatestIntervention,
+} from '../db/intervention.queries.js';
 import { diffDays } from '../lib/dates.js';
-import { InvalidRangeError, NotFoundError, RangeTooLargeError } from '../lib/errors.js';
+import {
+  InvalidRangeError,
+  NotFoundError,
+  RangeTooLargeError,
+} from '../lib/errors.js';
 
 const MAX_HISTORY_DAYS = 366;
 const CURRENCY_PAIR = 'EUR/VES';
@@ -19,10 +26,14 @@ export interface InterventionLatestOutput {
  * the last day the BCV actually intervened, which the client compares against
  * today to decide whether there was an intervention today.
  */
-export async function getInterventionLatest(d: Database): Promise<InterventionLatestOutput> {
+export async function getInterventionLatest(
+  d: Database,
+): Promise<InterventionLatestOutput> {
   const row = await getLatestIntervention(d);
   if (!row) {
-    throw new NotFoundError('Aún no hay intervenciones cambiarias registradas.');
+    throw new NotFoundError(
+      'Aún no hay intervenciones cambiarias registradas.',
+    );
   }
   return {
     date: row.date,
@@ -47,7 +58,8 @@ export async function getInterventionHistoryRange(
 }> {
   if (from > to) throw new InvalidRangeError(from, to);
   const days = diffDays(from, to) + 1;
-  if (days > MAX_HISTORY_DAYS) throw new RangeTooLargeError(days, MAX_HISTORY_DAYS);
+  if (days > MAX_HISTORY_DAYS)
+    throw new RangeTooLargeError(days, MAX_HISTORY_DAYS);
 
   const rows = await getInterventionHistory(d, from, to);
   return {

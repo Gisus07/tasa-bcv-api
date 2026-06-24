@@ -13,7 +13,9 @@ const route = createRoute({
   summary: 'Última intervención cambiaria del BCV',
   description:
     'Última intervención cambiaria publicada por el BCV, con su tipo de cambio en Bs./EUR. Es una serie INDEPENDIENTE de la tasa oficial USD/EUR. Para saber si hubo intervención hoy, compara el campo `date` con la fecha actual. Solo ocurre en días hábiles; no se propaga.',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/intervention/latest' }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/intervention/latest' }),
+  } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Última intervención registrada',
@@ -26,7 +28,9 @@ const route = createRoute({
   },
 });
 
-export const interventionLatest = new OpenAPIHono({ defaultHook: defaultZodHook });
+export const interventionLatest = new OpenAPIHono({
+  defaultHook: defaultZodHook,
+});
 interventionLatest.openapi(route, async (c) => {
   return c.json(await getInterventionLatest(db()), 200);
 });

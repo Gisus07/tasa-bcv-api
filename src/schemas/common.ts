@@ -6,7 +6,8 @@ export const DateString = z
   .string()
   .openapi({ example: '2026-05-14', description: 'Fecha ISO YYYY-MM-DD' })
   .refine((v) => isValidISODate(v), {
-    message: 'La fecha debe estar en formato YYYY-MM-DD y ser un día válido del calendario gregoriano',
+    message:
+      'La fecha debe estar en formato YYYY-MM-DD y ser un día válido del calendario gregoriano',
   });
 
 export const CurrencyEnum = z
@@ -21,7 +22,9 @@ export type Currency = z.infer<typeof CurrencyEnum>;
 
 export const ErrorResponse = z
   .object({
-    error: z.string().openapi({ example: 'La fecha 2030-01-01 está en el futuro.' }),
+    error: z
+      .string()
+      .openapi({ example: 'La fecha 2030-01-01 está en el futuro.' }),
     code: z.string().openapi({ example: 'DATE_OUT_OF_RANGE' }),
     details: z.record(z.unknown()).optional(),
   })

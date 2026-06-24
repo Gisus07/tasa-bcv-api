@@ -13,7 +13,9 @@ const route = createRoute({
   summary: 'Últimas tasas USD y EUR',
   description:
     'Devuelve la tasa publicada más reciente para USD y EUR. Cada moneda puede tener su propia fecha si una se actualizó después que la otra.',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/latest' }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/rates/latest' }),
+  } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Últimas tasas USD y EUR',

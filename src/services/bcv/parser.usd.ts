@@ -16,7 +16,10 @@ const SHEET_NAME_IS_YEAR = /^\d{4}$/;
  * The function is tolerant of trailing blank rows, missing data within a sheet,
  * and small layout drift (it locates the header row by content, not by index).
  */
-export function parseUsdWorkbook(buffer: Buffer, sourceFile: string): RateRecord[] {
+export function parseUsdWorkbook(
+  buffer: Buffer,
+  sourceFile: string,
+): RateRecord[] {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const records: RateRecord[] = [];
 
@@ -39,7 +42,11 @@ export function parseUsdWorkbook(buffer: Buffer, sourceFile: string): RateRecord
       const ventaCell = row[ventaCol];
       const iso = cellToIso(fechaCell);
       if (!iso) continue;
-      if (typeof ventaCell !== 'number' || !Number.isFinite(ventaCell) || ventaCell <= 0) {
+      if (
+        typeof ventaCell !== 'number' ||
+        !Number.isFinite(ventaCell) ||
+        ventaCell <= 0
+      ) {
         continue;
       }
       records.push({

@@ -39,8 +39,12 @@ export const rates = pgTable(
     /** When is_propagated=true, the original date the rate was inherited from. */
     propagatedFrom: date('propagated_from'),
     /** Server-side timestamp when this row was last written. */
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     primaryKey({ columns: [table.date, table.currency] }),
@@ -61,7 +65,9 @@ export const ingestRuns = pgTable('ingest_runs', {
   id: serial('id').primaryKey(),
   /** 'backfill' | 'daily' | 'retry' | 'manual'. */
   jobType: varchar('job_type', { length: 16 }).notNull(),
-  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  startedAt: timestamp('started_at', { withTimezone: true })
+    .notNull()
+    .defaultNow(),
   finishedAt: timestamp('finished_at', { withTimezone: true }),
   /** 'running' | 'ok' | 'error'. */
   status: varchar('status', { length: 16 }).notNull(),
@@ -89,16 +95,25 @@ export const apiKeys = pgTable(
     email: text('email').notNull(),
     purpose: text('purpose'),
     tier: varchar('tier', { length: 16 }).notNull().default('free'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-    requestCount: bigint('request_count', { mode: 'number' }).notNull().default(0),
+    requestCount: bigint('request_count', { mode: 'number' })
+      .notNull()
+      .default(0),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },
   (table) => [
     check('api_keys_tier_check', sql`${table.tier} IN ('free', 'pro')`),
-    check('api_keys_email_format', sql`${table.email} ~* '^[^@]+@[^@]+\\.[^@]+$'`),
+    check(
+      'api_keys_email_format',
+      sql`${table.email} ~* '^[^@]+@[^@]+\\.[^@]+$'`,
+    ),
     index('api_keys_email_idx').on(table.email),
-    index('api_keys_active_idx').on(table.keyHash).where(sql`${table.revokedAt} IS NULL`),
+    index('api_keys_active_idx')
+      .on(table.keyHash)
+      .where(sql`${table.revokedAt} IS NULL`),
   ],
 );
 
@@ -141,7 +156,9 @@ export const parallelRates = pgTable(
     sell: numeric('sell', { precision: 18, scale: 8 }).notNull(),
     average: numeric('average', { precision: 18, scale: 8 }).notNull(),
     source: varchar('source', { length: 16 }).notNull().default('binance_p2p'),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [index('parallel_rates_timestamp_idx').on(table.timestamp.desc())],
 );
@@ -162,11 +179,15 @@ export const interventions = pgTable(
     /** Day the intervention took place (Caracas calendar). */
     date: date('date').primaryKey(),
     /** BCV intervention number, e.g. "011-26" (repeats across days of one round). */
-    interventionNumber: varchar('intervention_number', { length: 16 }).notNull(),
+    interventionNumber: varchar('intervention_number', {
+      length: 16,
+    }).notNull(),
     /** Settlement exchange rate in Bs. per EUR, as published by the BCV. */
     rate: numeric('rate', { precision: 18, scale: 8 }).notNull(),
     source: varchar('source', { length: 16 }).notNull().default('bcv'),
-    fetchedAt: timestamp('fetched_at', { withTimezone: true }).notNull().defaultNow(),
+    fetchedAt: timestamp('fetched_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     check('interventions_rate_positive', sql`${table.rate} > 0`),

@@ -14,9 +14,12 @@ Sigue la sección "Desarrollo local" del [README](../README.md). Necesitas Node 
 ## Estilo de código
 
 - TypeScript estricto (`tsconfig.json` lo aplica).
-- `pnpm typecheck` y `pnpm test` deben pasar en CI.
-- Sigue el estilo de los archivos vecinos. No introduzcas nuevos formatters/linters sin discutirlo primero.
-- Mantén las funciones pequeñas y enfocadas. Si una función pasa de ~80 líneas o tiene más de 4 niveles de indentación, probablemente puede dividirse.
+- El repo usa **ESLint** (con `typescript-eslint`) y **Prettier**. Antes de subir:
+  - `pnpm lint` — corrige lo autofixable y reporta el resto.
+  - `pnpm format` — aplica el formato de Prettier.
+- En CI deben pasar `pnpm lint:ci`, `pnpm format:check`, `pnpm typecheck`, `pnpm test` y `pnpm build`.
+- **Git hooks** (`.githooks`): se activan solos al instalar (`pnpm install` ejecuta el script `prepare`). `pre-commit` valida el formato; `pre-push` corre lint + typecheck. Activación manual: `git config core.hooksPath .githooks`.
+- Sigue el estilo de los archivos vecinos. Mantén las funciones pequeñas y enfocadas. Si una función pasa de ~80 líneas o tiene más de 4 niveles de indentación, probablemente puede dividirse.
 
 ## Tests
 

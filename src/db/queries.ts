@@ -1,6 +1,13 @@
 import { and, asc, desc, eq, gt, gte, lte, lt, sql } from 'drizzle-orm';
 import type { Database } from './client.js';
-import { ingestRuns, rates, type IngestRun, type NewIngestRun, type NewRate, type Rate } from './schema.js';
+import {
+  ingestRuns,
+  rates,
+  type IngestRun,
+  type NewIngestRun,
+  type NewRate,
+  type Rate,
+} from './schema.js';
 
 export type Currency = 'USD' | 'EUR';
 
@@ -17,7 +24,12 @@ export async function getLatest(
   const where = asOf
     ? and(eq(rates.currency, currency), lte(rates.date, asOf))
     : eq(rates.currency, currency);
-  const rows = await d.select().from(rates).where(where).orderBy(desc(rates.date)).limit(1);
+  const rows = await d
+    .select()
+    .from(rates)
+    .where(where)
+    .orderBy(desc(rates.date))
+    .limit(1);
   return rows[0];
 }
 
@@ -41,10 +53,18 @@ export async function getRange(
   currency?: Currency,
 ): Promise<Rate[]> {
   const conditions = currency
-    ? and(gte(rates.date, from), lte(rates.date, to), eq(rates.currency, currency))
+    ? and(
+        gte(rates.date, from),
+        lte(rates.date, to),
+        eq(rates.currency, currency),
+      )
     : and(gte(rates.date, from), lte(rates.date, to));
 
-  return d.select().from(rates).where(conditions).orderBy(asc(rates.date), asc(rates.currency));
+  return d
+    .select()
+    .from(rates)
+    .where(conditions)
+    .orderBy(asc(rates.date), asc(rates.currency));
 }
 
 /** Most recent rate strictly before `date`. Used to backfill gaps. */
@@ -94,7 +114,10 @@ export async function getEarliestDate(
  * Idempotent batch upsert. On conflict, updates only when the rate or
  * propagation flag actually changed, avoiding gratuitous writes.
  */
-export async function upsertRates(d: Database, batch: NewRate[]): Promise<number> {
+export async function upsertRates(
+  d: Database,
+  batch: NewRate[],
+): Promise<number> {
   if (batch.length === 0) return 0;
 
   // PostgreSQL rejects an INSERT ... ON CONFLICT DO UPDATE when the same
@@ -174,13 +197,17 @@ export async function hasActiveIngestRun(
   const rows = await d
     .select({ id: ingestRuns.id })
     .from(ingestRuns)
-    .where(and(eq(ingestRuns.status, 'running'), gt(ingestRuns.startedAt, cutoff)))
+    .where(
+      and(eq(ingestRuns.status, 'running'), gt(ingestRuns.startedAt, cutoff)),
+    )
     .limit(1);
   return rows.length > 0;
 }
 
 /** Last successful ingest run, used by GET /v1/last-updated. */
-export async function getLastSuccessfulRun(d: Database): Promise<IngestRun | undefined> {
+export async function getLastSuccessfulRun(
+  d: Database,
+): Promise<IngestRun | undefined> {
   const rows = await d
     .select()
     .from(ingestRuns)

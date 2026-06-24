@@ -1,7 +1,13 @@
 import { z } from 'zod';
 
 const booleanFromString = z
-  .union([z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0'), z.literal('')])
+  .union([
+    z.literal('true'),
+    z.literal('false'),
+    z.literal('1'),
+    z.literal('0'),
+    z.literal(''),
+  ])
   .transform((v) => v === 'true' || v === '1');
 
 const cronExpression = z
@@ -10,7 +16,9 @@ const cronExpression = z
   .regex(/^\S+\s+\S+\s+\S+\s+\S+\s+\S+$/, 'Expected a 5-field cron expression');
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'test', 'production'])
+    .default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   TZ: z.string().default('America/Caracas'),
 
@@ -60,7 +68,10 @@ const envSchema = z.object({
   ADMIN_TOKEN: z.string().min(32).optional(),
 
   /** Public base URL advertised in the OpenAPI `servers` block. */
-  PUBLIC_BASE_URL: z.string().url().default('https://tasa-bcv-api-production.up.railway.app'),
+  PUBLIC_BASE_URL: z
+    .string()
+    .url()
+    .default('https://tasa-bcv-api-production.up.railway.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;

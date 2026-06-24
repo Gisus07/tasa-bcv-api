@@ -6,7 +6,11 @@ import {
   getParallelHistory,
   insertParallelSnapshot,
 } from './parallel.queries.js';
-import { startTestDb, stopTestDb, type TestDb } from '../__tests__/testcontainer.helper.js';
+import {
+  startTestDb,
+  stopTestDb,
+  type TestDb,
+} from '../__tests__/testcontainer.helper.js';
 
 describe('parallel.queries (real Postgres via testcontainers)', () => {
   let env: TestDb;
@@ -24,8 +28,18 @@ describe('parallel.queries (real Postgres via testcontainers)', () => {
   });
 
   it('inserts snapshots and getLatest returns the most recent', async () => {
-    await insertParallelSnapshot(env.db, { buy: 720, sell: 718, average: 719 }, 'binance_p2p', new Date('2026-05-23T14:00:00Z'));
-    await insertParallelSnapshot(env.db, { buy: 722, sell: 720, average: 721 }, 'binance_p2p', new Date('2026-05-23T15:00:00Z'));
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 720, sell: 718, average: 719 },
+      'binance_p2p',
+      new Date('2026-05-23T14:00:00Z'),
+    );
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 722, sell: 720, average: 721 },
+      'binance_p2p',
+      new Date('2026-05-23T15:00:00Z'),
+    );
 
     const latest = await getLatestParallel(env.db);
     expect(latest?.average).toBe('721.00000000');
@@ -34,9 +48,24 @@ describe('parallel.queries (real Postgres via testcontainers)', () => {
   });
 
   it('getParallelHistory returns rows within the range, oldest first', async () => {
-    await insertParallelSnapshot(env.db, { buy: 1, sell: 1, average: 1 }, 'binance_p2p', new Date('2026-05-22T10:00:00Z'));
-    await insertParallelSnapshot(env.db, { buy: 2, sell: 2, average: 2 }, 'binance_p2p', new Date('2026-05-23T10:00:00Z'));
-    await insertParallelSnapshot(env.db, { buy: 3, sell: 3, average: 3 }, 'binance_p2p', new Date('2026-05-24T10:00:00Z'));
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 1, sell: 1, average: 1 },
+      'binance_p2p',
+      new Date('2026-05-22T10:00:00Z'),
+    );
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 2, sell: 2, average: 2 },
+      'binance_p2p',
+      new Date('2026-05-23T10:00:00Z'),
+    );
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 3, sell: 3, average: 3 },
+      'binance_p2p',
+      new Date('2026-05-24T10:00:00Z'),
+    );
 
     const rows = await getParallelHistory(
       env.db,
@@ -49,9 +78,24 @@ describe('parallel.queries (real Postgres via testcontainers)', () => {
 
   it('getParallelDaily aggregates OHLC by Caracas day', async () => {
     // All three fall on 2026-05-23 in Caracas (UTC-4): 08:00, 12:00, 16:00.
-    await insertParallelSnapshot(env.db, { buy: 719, sell: 719, average: 719 }, 'binance_p2p', new Date('2026-05-23T12:00:00Z'));
-    await insertParallelSnapshot(env.db, { buy: 725, sell: 725, average: 725 }, 'binance_p2p', new Date('2026-05-23T16:00:00Z'));
-    await insertParallelSnapshot(env.db, { buy: 721, sell: 721, average: 721 }, 'binance_p2p', new Date('2026-05-23T20:00:00Z'));
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 719, sell: 719, average: 719 },
+      'binance_p2p',
+      new Date('2026-05-23T12:00:00Z'),
+    );
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 725, sell: 725, average: 725 },
+      'binance_p2p',
+      new Date('2026-05-23T16:00:00Z'),
+    );
+    await insertParallelSnapshot(
+      env.db,
+      { buy: 721, sell: 721, average: 721 },
+      'binance_p2p',
+      new Date('2026-05-23T20:00:00Z'),
+    );
 
     const days = await getParallelDaily(
       env.db,
