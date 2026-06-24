@@ -8,6 +8,13 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 > Las entradas anteriores a `0.4.0` se reconstruyeron a partir del historial de
 > git y de las notas de GitHub Releases.
 
+## [1.1.1](https://github.com/Gisus07/tasa-bcv-api/compare/v1.1.0...v1.1.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* **docker:** copy pnpm-workspace.yaml so the image build passes ([#36](https://github.com/Gisus07/tasa-bcv-api/issues/36)) ([2fe936c](https://github.com/Gisus07/tasa-bcv-api/commit/2fe936c6aa4c0c9048a02b3da30ccb6f0881966a))
+
 ## [1.1.0](https://github.com/Gisus07/tasa-bcv-api/compare/v1.0.0...v1.1.0) (2026-06-24)
 
 
