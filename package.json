@@ -36,14 +36,14 @@
     "@scalar/hono-api-reference": "^0.5.165",
     "cheerio": "^1.2.0",
     "drizzle-orm": "^0.45.2",
-    "hono": "^4.6.13",
+    "hono": "^4.12.27",
     "hono-rate-limiter": "^0.4.2",
     "node-cron": "^3.0.3",
     "p-limit": "^7.3.0",
     "pg": "^8.21.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.0.0",
-    "undici": "^8.3.0",
+    "undici": "^8.5.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.23.8"
   },
@@ -62,6 +62,6 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.20.0",
-    "vitest": "^2.1.9"
+    "vitest": "^3.2.6"
   }
 }
