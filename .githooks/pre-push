@@ -1,0 +1,16 @@
+#!/bin/sh
+# Hook pre-push de tasa-bcv-api.
+# Replica lo barato del CI antes de subir: lint sin --fix y typecheck.
+# (build y tests quedan para CI — demasiado lentos para un pre-push.)
+#
+# Se activa solo al instalar (script "prepare" del package.json).
+# Manual:  git config core.hooksPath .githooks
+set -e
+
+if ! command -v pnpm >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+  echo "[pre-push] pnpm/node no están en PATH — checks omitidos (CI los corre igual)." >&2
+  exit 0
+fi
+
+pnpm lint:ci
+pnpm typecheck

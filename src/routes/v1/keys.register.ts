@@ -3,7 +3,10 @@ import { db } from '../../db/client.js';
 import { codeSamplesFor } from '../../i18n/codeSamples.js';
 import { defaultZodHook } from '../../middleware/zodHook.js';
 import { ErrorResponse } from '../../schemas/common.js';
-import { RegisterKeyRequest, RegisterKeyResponse } from '../../schemas/rates.js';
+import {
+  RegisterKeyRequest,
+  RegisterKeyResponse,
+} from '../../schemas/rates.js';
 import { createKey } from '../../services/apiKeys.service.js';
 
 const FREE_TIER_LIMIT = 300;
@@ -22,7 +25,11 @@ const route = createRoute({
     'x-codeSamples': codeSamplesFor({
       path: '/v1/keys/register',
       method: 'POST',
-      body: { email: 'dev@example.com', name: 'Ana Pérez', purpose: 'Mi proyecto' },
+      body: {
+        email: 'dev@example.com',
+        name: 'Ana Pérez',
+        purpose: 'Mi proyecto',
+      },
     }),
   } as Record<string, unknown>),
   request: {
@@ -33,7 +40,8 @@ const route = createRoute({
   },
   responses: {
     201: {
-      description: 'API key creada. Guarda `key` ahora mismo — solo se muestra una vez.',
+      description:
+        'API key creada. Guarda `key` ahora mismo — solo se muestra una vez.',
       content: {
         'application/json': {
           schema: RegisterKeyResponse,
@@ -51,7 +59,8 @@ const route = createRoute({
       },
     },
     400: {
-      description: 'Entrada inválida (email mal formado, campos faltantes, etc.)',
+      description:
+        'Entrada inválida (email mal formado, campos faltantes, etc.)',
       content: { 'application/json': { schema: ErrorResponse } },
     },
   },

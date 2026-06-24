@@ -63,7 +63,9 @@ describe('AppError subclasses', () => {
   });
 
   it('UpstreamFormatError is 502', () => {
-    expect(new UpstreamFormatError('missing VENTA column').httpStatus).toBe(502);
+    expect(new UpstreamFormatError('missing VENTA column').httpStatus).toBe(
+      502,
+    );
   });
 });
 

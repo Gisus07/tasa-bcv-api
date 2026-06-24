@@ -40,7 +40,10 @@ export function startCron(): void {
         const result = await runDailyUpdate(db(), 'daily');
         log.info(result, 'cron daily finished');
       } catch (err) {
-        log.error({ err: err instanceof Error ? err.message : err }, 'cron daily threw');
+        log.error(
+          { err: err instanceof Error ? err.message : err },
+          'cron daily threw',
+        );
       }
     },
     { timezone: CARACAS_TZ },
@@ -53,9 +56,15 @@ export function startCron(): void {
       const usdToday = await getByDate(db(), today, 'USD');
       const eurToday = await getByDate(db(), today, 'EUR');
       const needsRetry =
-        !usdToday || !eurToday || usdToday.isPropagated || eurToday.isPropagated;
+        !usdToday ||
+        !eurToday ||
+        usdToday.isPropagated ||
+        eurToday.isPropagated;
       if (!needsRetry) {
-        log.info({ today }, 'cron retry skipped: today already has fresh rates');
+        log.info(
+          { today },
+          'cron retry skipped: today already has fresh rates',
+        );
         return;
       }
       log.warn(
@@ -70,7 +79,10 @@ export function startCron(): void {
         const result = await runDailyUpdate(db(), 'retry');
         log.info(result, 'cron retry finished');
       } catch (err) {
-        log.error({ err: err instanceof Error ? err.message : err }, 'cron retry threw');
+        log.error(
+          { err: err instanceof Error ? err.message : err },
+          'cron retry threw',
+        );
       }
     },
     { timezone: CARACAS_TZ },
@@ -83,7 +95,10 @@ export function startCron(): void {
       try {
         await runParallelSnapshot(db());
       } catch (err) {
-        log.error({ err: err instanceof Error ? err.message : err }, 'cron parallel threw');
+        log.error(
+          { err: err instanceof Error ? err.message : err },
+          'cron parallel threw',
+        );
       }
     },
     { timezone: CARACAS_TZ },
@@ -95,7 +110,10 @@ export function startCron(): void {
       try {
         await runInterventionCheck(db());
       } catch (err) {
-        log.error({ err: err instanceof Error ? err.message : err }, 'cron intervention threw');
+        log.error(
+          { err: err instanceof Error ? err.message : err },
+          'cron intervention threw',
+        );
       }
     },
     { timezone: CARACAS_TZ },

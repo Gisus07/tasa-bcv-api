@@ -28,7 +28,11 @@ function maxAllowedDate(): string {
   return addDays(todayCaracas(), 1);
 }
 
-async function assertDateInRange(d: Database, date: string, currency: Currency): Promise<void> {
+async function assertDateInRange(
+  d: Database,
+  date: string,
+  currency: Currency,
+): Promise<void> {
   const maxDate = maxAllowedDate();
   if (date > maxDate) throw new DateOutOfRangeError(date, maxDate);
   const earliest = await getEarliestDate(d, currency);
@@ -53,13 +57,26 @@ export async function getLatestPair(d: Database): Promise<RatesPairOutput> {
   }
   // "latest" always reports today's effective rate: carry forward if the newest
   // stored row is older than today (e.g. before the daily has run).
-  return buildPair(today, carryForwardTo(usdRow, today), carryForwardTo(eurRow, today));
+  return buildPair(
+    today,
+    carryForwardTo(usdRow, today),
+    carryForwardTo(eurRow, today),
+  );
 }
 
 /** Returns USD + EUR for a given date. */
-export async function getPairByDate(d: Database, date: string): Promise<RatesPairOutput> {
-  await Promise.all([assertDateInRange(d, date, 'USD'), assertDateInRange(d, date, 'EUR')]);
-  const [usdRow, eurRow] = await Promise.all([getByDate(d, date, 'USD'), getByDate(d, date, 'EUR')]);
+export async function getPairByDate(
+  d: Database,
+  date: string,
+): Promise<RatesPairOutput> {
+  await Promise.all([
+    assertDateInRange(d, date, 'USD'),
+    assertDateInRange(d, date, 'EUR'),
+  ]);
+  const [usdRow, eurRow] = await Promise.all([
+    getByDate(d, date, 'USD'),
+    getByDate(d, date, 'EUR'),
+  ]);
   if (!usdRow || !eurRow) {
     throw new NotFoundError(
       `No hay tasas para ${date}. La propagación puede no haber corrido aún para alguna de las monedas.`,
@@ -78,7 +95,8 @@ export async function getSingleCurrency(
     // Latest in effect today, not a future published rate (see getLatestPair).
     const today = todayCaracas();
     const row = await getLatest(d, currency, today);
-    if (!row) throw new NotFoundError(`Aún no hay tasa ${currency} disponible.`);
+    if (!row)
+      throw new NotFoundError(`Aún no hay tasa ${currency} disponible.`);
     return buildSingle(carryForwardTo(row, today));
   }
   await assertDateInRange(d, date, currency);
@@ -95,7 +113,12 @@ export async function getRange(
   from: string,
   to: string,
   currency: Currency | 'all',
-): Promise<{ from: string; to: string; count: number; rates: SingleRateOutput[] }> {
+): Promise<{
+  from: string;
+  to: string;
+  count: number;
+  rates: SingleRateOutput[];
+}> {
   if (from > to) throw new InvalidRangeError(from, to);
   const days = diffDays(from, to) + 1;
   if (days > MAX_RANGE_DAYS) throw new RangeTooLargeError(days, MAX_RANGE_DAYS);

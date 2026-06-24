@@ -18,7 +18,10 @@ const route = createRoute({
     'Ideal para gráficas de uso semanales o mensuales.',
   security: [{ bearerAuth: [] }],
   ...({
-    'x-codeSamples': codeSamplesFor({ path: '/v1/keys/me/usage?days=30', bearer: true }),
+    'x-codeSamples': codeSamplesFor({
+      path: '/v1/keys/me/usage?days=30',
+      bearer: true,
+    }),
   } as Record<string, unknown>),
   request: { query: UsageQuery },
   responses: {

@@ -71,7 +71,9 @@ describe('parseInterventionHtml', () => {
   });
 
   it('handles thousands separators in older rates (5.849,72 -> 5849.72)', () => {
-    const old = parseInterventionHtml(SAMPLE_HTML).find((r) => r.date === '2019-05-13');
+    const old = parseInterventionHtml(SAMPLE_HTML).find(
+      (r) => r.date === '2019-05-13',
+    );
     expect(old?.rate).toBe('5849.72000000');
     expect(old?.interventionNumber).toBe('014-19');
   });
@@ -83,8 +85,8 @@ describe('parseInterventionHtml', () => {
   });
 
   it('throws UpstreamFormatError when there are no intervention rows', () => {
-    expect(() => parseInterventionHtml('<table><tbody></tbody></table>')).toThrowError(
-      /no intervention rows/,
-    );
+    expect(() =>
+      parseInterventionHtml('<table><tbody></tbody></table>'),
+    ).toThrowError(/no intervention rows/);
   });
 });

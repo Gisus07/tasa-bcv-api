@@ -33,7 +33,8 @@ const route = createRoute({
           example: {
             revoked: true,
             id: 1,
-            message: 'API key 1 revocada. Futuras requests con esta key devolverán 401.',
+            message:
+              'API key 1 revocada. Futuras requests con esta key devolverán 401.',
           },
         },
       },

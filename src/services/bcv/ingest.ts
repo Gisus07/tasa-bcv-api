@@ -35,7 +35,12 @@ export async function ingestUsdHistory(d: Database): Promise<IngestSummary> {
   const url = usdHistoryUrl();
   const fetched = await fetchBcv(url);
   if (!fetched) {
-    return { filesFetched: 0, rowsUpserted: 0, records: 0, errors: [`${url}: empty body`] };
+    return {
+      filesFetched: 0,
+      rowsUpserted: 0,
+      records: 0,
+      errors: [`${url}: empty body`],
+    };
   }
   log.info({ url, bytes: fetched.body.length }, 'downloaded USD history');
 
@@ -43,8 +48,16 @@ export async function ingestUsdHistory(d: Database): Promise<IngestSummary> {
   const rows = records.map(toNewRate);
   const upserted = await batchedUpsert(d, rows);
 
-  log.info({ records: records.length, upserted }, 'USD history ingest complete');
-  return { filesFetched: 1, rowsUpserted: upserted, records: records.length, errors: [] };
+  log.info(
+    { records: records.length, upserted },
+    'USD history ingest complete',
+  );
+  return {
+    filesFetched: 1,
+    rowsUpserted: upserted,
+    records: records.length,
+    errors: [],
+  };
 }
 
 /**
@@ -55,17 +68,35 @@ export async function ingestUsdHistory(d: Database): Promise<IngestSummary> {
  * hit 2026-05-15..18). Filtered to `sinceIso` to keep the write set small; the
  * upsert is idempotent so unchanged rows are skipped.
  */
-export async function ingestRecentUsd(d: Database, sinceIso: string): Promise<IngestSummary> {
+export async function ingestRecentUsd(
+  d: Database,
+  sinceIso: string,
+): Promise<IngestSummary> {
   const log = logger().child({ source: 'usd-recent' });
   const url = usdHistoryUrl();
   const fetched = await fetchBcv(url);
   if (!fetched) {
-    return { filesFetched: 0, rowsUpserted: 0, records: 0, errors: [`${url}: empty body`] };
+    return {
+      filesFetched: 0,
+      rowsUpserted: 0,
+      records: 0,
+      errors: [`${url}: empty body`],
+    };
   }
-  const recent = parseUsdWorkbook(fetched.body, '2_1_1_tdc.xlsx').filter((r) => r.date >= sinceIso);
+  const recent = parseUsdWorkbook(fetched.body, '2_1_1_tdc.xlsx').filter(
+    (r) => r.date >= sinceIso,
+  );
   const upserted = await batchedUpsert(d, recent.map(toNewRate));
-  log.info({ records: recent.length, upserted, sinceIso }, 'recent USD refresh complete');
-  return { filesFetched: 1, rowsUpserted: upserted, records: recent.length, errors: [] };
+  log.info(
+    { records: recent.length, upserted, sinceIso },
+    'recent USD refresh complete',
+  );
+  return {
+    filesFetched: 1,
+    rowsUpserted: upserted,
+    records: recent.length,
+    errors: [],
+  };
 }
 
 /** Backfill EUR history by sweeping every quarterly file in [fromYear, toYear]. */
@@ -96,14 +127,22 @@ export async function ingestEurHistory(
           filesFetched++;
           // Use the lenient parser so a single bad sheet doesn't poison the
           // whole quarter — each bad sheet only loses its own day's EUR row.
-          const { records, skipped } = parseEurWorkbookSafe(result.body, filename);
+          const { records, skipped } = parseEurWorkbookSafe(
+            result.body,
+            filename,
+          );
           allRecords.push(...records);
           if (skipped.length > 0) {
             for (const s of skipped) {
               errors.push(`${filename}#${s.sheet}: ${s.reason}`);
             }
             log.warn(
-              { url, filename, records: records.length, skipped: skipped.map((s) => s.sheet) },
+              {
+                url,
+                filename,
+                records: records.length,
+                skipped: skipped.map((s) => s.sheet),
+              },
               'parsed EUR quarter with some skipped sheets',
             );
           } else {
@@ -126,10 +165,20 @@ export async function ingestEurHistory(
   const upserted = await batchedUpsert(d, rows);
 
   log.info(
-    { records: allRecords.length, upserted, filesFetched, errors: errors.length },
+    {
+      records: allRecords.length,
+      upserted,
+      filesFetched,
+      errors: errors.length,
+    },
     'EUR history ingest complete',
   );
-  return { filesFetched, rowsUpserted: upserted, records: allRecords.length, errors };
+  return {
+    filesFetched,
+    rowsUpserted: upserted,
+    records: allRecords.length,
+    errors,
+  };
 }
 
 /** Daily ingest: scrape the BCV homepage and upsert today's USD + EUR rate. */
@@ -142,7 +191,12 @@ export async function ingestFromHomepage(d: Database): Promise<IngestSummary> {
     { records: records.length, upserted, dates: records.map((r) => r.date) },
     'homepage scrape complete',
   );
-  return { filesFetched: 1, rowsUpserted: upserted, records: records.length, errors: [] };
+  return {
+    filesFetched: 1,
+    rowsUpserted: upserted,
+    records: records.length,
+    errors: [],
+  };
 }
 
 /** Single-quarter EUR refresh used by the daily job to capture late-publish corrections. */
@@ -161,12 +215,24 @@ export async function ingestCurrentEurQuarter(
   }
   const records = parseEurWorkbook(result.body, filename);
   const upserted = await batchedUpsert(d, records.map(toNewRate));
-  log.info({ filename, records: records.length, upserted }, 'EUR quarter refresh');
-  return { filesFetched: 1, rowsUpserted: upserted, records: records.length, errors: [] };
+  log.info(
+    { filename, records: records.length, upserted },
+    'EUR quarter refresh',
+  );
+  return {
+    filesFetched: 1,
+    rowsUpserted: upserted,
+    records: records.length,
+    errors: [],
+  };
 }
 
 /** Upsert in chunks of 500 to keep individual queries bounded. */
-async function batchedUpsert(d: Database, rows: NewRate[], chunkSize = 500): Promise<number> {
+async function batchedUpsert(
+  d: Database,
+  rows: NewRate[],
+  chunkSize = 500,
+): Promise<number> {
   let total = 0;
   for (let i = 0; i < rows.length; i += chunkSize) {
     const slice = rows.slice(i, i + chunkSize);

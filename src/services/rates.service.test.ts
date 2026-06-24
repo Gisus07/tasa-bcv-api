@@ -30,7 +30,11 @@ describe('carryForwardTo', () => {
   });
 
   it('carries a real past row forward to today, flagged propagated from its own date', () => {
-    const row = makeRate({ date: '2026-05-22', isPropagated: false, propagatedFrom: null });
+    const row = makeRate({
+      date: '2026-05-22',
+      isPropagated: false,
+      propagatedFrom: null,
+    });
     const out = carryForwardTo(row, '2026-05-24');
     expect(out.date).toBe('2026-05-24');
     expect(out.isPropagated).toBe(true);
@@ -39,7 +43,11 @@ describe('carryForwardTo', () => {
   });
 
   it('keeps the original origin when carrying an already-propagated row forward', () => {
-    const row = makeRate({ date: '2026-05-23', isPropagated: true, propagatedFrom: '2026-05-22' });
+    const row = makeRate({
+      date: '2026-05-23',
+      isPropagated: true,
+      propagatedFrom: '2026-05-22',
+    });
     const out = carryForwardTo(row, '2026-05-24');
     expect(out.date).toBe('2026-05-24');
     expect(out.isPropagated).toBe(true);

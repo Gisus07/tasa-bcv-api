@@ -11,7 +11,10 @@ const route = createRoute({
   path: '/rates/eur',
   tags: ['rates'],
   summary: 'Tasa EUR (la más reciente por defecto, o para una fecha dada)',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/eur' }) } as Record<string, unknown>),
+  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/eur' }) } as Record<
+    string,
+    unknown
+  >),
   request: { query: SingleCurrencyQuery },
   responses: {
     200: {
@@ -22,7 +25,11 @@ const route = createRoute({
           examples: {
             normal: {
               summary: 'Día con publicación',
-              value: { date: '2026-05-14', currency: 'EUR', rate: 598.12171255 },
+              value: {
+                date: '2026-05-14',
+                currency: 'EUR',
+                rate: 598.12171255,
+              },
             },
             propagated: {
               summary: 'Día propagado (sábado)',

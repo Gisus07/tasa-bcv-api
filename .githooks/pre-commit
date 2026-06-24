@@ -1,0 +1,15 @@
+#!/bin/sh
+# Hook pre-commit de tasa-bcv-api.
+# Chequeo rápido de formato (Prettier) para que ningún commit entre sin formatear.
+# El lint type-aware y los tests quedan para pre-push / CI (más lentos).
+#
+# Se activa solo al instalar (script "prepare" del package.json).
+# Manual:  git config core.hooksPath .githooks
+set -e
+
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "[pre-commit] pnpm no está en PATH — chequeo omitido (CI lo corre igual)." >&2
+  exit 0
+fi
+
+pnpm format:check

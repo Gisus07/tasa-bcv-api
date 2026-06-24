@@ -11,7 +11,12 @@ import {
   hasActiveIngestRun,
   getLastSuccessfulRun,
 } from './queries.js';
-import { clearTables, startTestDb, stopTestDb, type TestDb } from '../__tests__/testcontainer.helper.js';
+import {
+  clearTables,
+  startTestDb,
+  stopTestDb,
+  type TestDb,
+} from '../__tests__/testcontainer.helper.js';
 
 const USD = 'USD' as const;
 const EUR = 'EUR' as const;
@@ -80,8 +85,12 @@ describe('queries (real Postgres via testcontainers)', () => {
     // Without asOf → the absolute max date.
     expect((await getLatest(env.db, USD))?.date).toBe('2026-05-18');
     // With asOf → the latest on or before that date (18 is "future").
-    expect((await getLatest(env.db, USD, '2026-05-15'))?.date).toBe('2026-05-15');
-    expect((await getLatest(env.db, USD, '2026-05-16'))?.date).toBe('2026-05-15');
+    expect((await getLatest(env.db, USD, '2026-05-15'))?.date).toBe(
+      '2026-05-15',
+    );
+    expect((await getLatest(env.db, USD, '2026-05-16'))?.date).toBe(
+      '2026-05-15',
+    );
   });
 
   it('getByDate returns undefined when no row exists', async () => {
@@ -115,13 +124,18 @@ describe('queries (real Postgres via testcontainers)', () => {
 
   it('upsertRates deduplicates intra-batch and is idempotent across runs', async () => {
     // Same (date, currency) appearing twice — must not crash ON CONFLICT.
-    const first = await upsertRates(env.db, [usd14, { ...usd14, rate: '510.99999999' }]);
+    const first = await upsertRates(env.db, [
+      usd14,
+      { ...usd14, rate: '510.99999999' },
+    ]);
     expect(first).toBeGreaterThan(0);
     const stored = await getByDate(env.db, '2026-05-14', USD);
     expect(stored?.rate).toBe('510.99999999'); // last wins
 
     // Re-running with the same values should be a no-op for the row count.
-    const second = await upsertRates(env.db, [{ ...usd14, rate: '510.99999999' }]);
+    const second = await upsertRates(env.db, [
+      { ...usd14, rate: '510.99999999' },
+    ]);
     expect(second).toBe(0);
   });
 

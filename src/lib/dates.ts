@@ -23,7 +23,9 @@ export function todayCaracas(now: Date = new Date()): string {
 export function parseBCVDate(input: string): string {
   const match = input.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!match) {
-    throw new Error(`Invalid BCV date format: "${input}" (expected DD/MM/YYYY)`);
+    throw new Error(
+      `Invalid BCV date format: "${input}" (expected DD/MM/YYYY)`,
+    );
   }
   const [, dd, mm, yyyy] = match;
   const day = Number(dd);
@@ -42,7 +44,11 @@ export function parseBCVDate(input: string): string {
 /** Validates that a string is a real "YYYY-MM-DD" date in the Gregorian calendar. */
 export function isValidISODate(input: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input)) return false;
-  const [yyyy, mm, dd] = input.split('-').map(Number) as [number, number, number];
+  const [yyyy, mm, dd] = input.split('-').map(Number) as [
+    number,
+    number,
+    number,
+  ];
   if (mm < 1 || mm > 12) return false;
   const daysInMonth = new Date(Date.UTC(yyyy, mm, 0)).getUTCDate();
   return dd >= 1 && dd <= daysInMonth;

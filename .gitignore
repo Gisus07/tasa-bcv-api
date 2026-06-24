@@ -23,6 +23,7 @@ pnpm-debug.log*
 .vscode/
 .idea/
 .claude/
+.serena/
 .DS_Store
 Thumbs.db
 

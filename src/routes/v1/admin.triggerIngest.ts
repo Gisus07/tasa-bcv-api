@@ -31,7 +31,8 @@ const route = createRoute({
           schema: z
             .object({
               await: z.boolean().optional().default(false).openapi({
-                description: 'Cuando es true, espera a que la ingesta termine antes de responder.',
+                description:
+                  'Cuando es true, espera a que la ingesta termine antes de responder.',
               }),
             })
             .openapi('TriggerIngestRequest'),
@@ -56,7 +57,9 @@ const route = createRoute({
   },
 });
 
-export const adminTriggerIngest = new OpenAPIHono({ defaultHook: defaultZodHook });
+export const adminTriggerIngest = new OpenAPIHono({
+  defaultHook: defaultZodHook,
+});
 adminTriggerIngest.use('/admin/*', adminAuth());
 adminTriggerIngest.openapi(route, async (c) => {
   const body = c.req.valid('json');
@@ -74,10 +77,17 @@ adminTriggerIngest.openapi(route, async (c) => {
 
   // Fire-and-forget; errors land in ingest_runs and logs.
   void runDailyUpdate(db(), 'manual').catch((err) => {
-    log.error({ err: err instanceof Error ? err.message : err }, 'background ingest failed');
+    log.error(
+      { err: err instanceof Error ? err.message : err },
+      'background ingest failed',
+    );
   });
   return c.json(
-    { job_type: 'manual', started: true, message: 'Ingest started in background.' },
+    {
+      job_type: 'manual',
+      started: true,
+      message: 'Ingest started in background.',
+    },
     202,
   );
 });

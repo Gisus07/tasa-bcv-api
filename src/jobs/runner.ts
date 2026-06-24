@@ -17,9 +17,13 @@ type JobName = 'backfill' | 'daily' | 'retry' | 'intervention-backfill';
 
 function parseArgs(argv: string[]): { job: JobName; options: BackfillOptions } {
   const job = argv[2] as JobName | undefined;
-  if (!job || !['backfill', 'daily', 'retry', 'intervention-backfill'].includes(job)) {
-    // eslint-disable-next-line no-console
-    console.error('Usage: tsx src/jobs/runner.ts <backfill|daily|retry|intervention-backfill> [--from-year=YYYY] [--to-year=YYYY] [--concurrency=N]');
+  if (
+    !job ||
+    !['backfill', 'daily', 'retry', 'intervention-backfill'].includes(job)
+  ) {
+    console.error(
+      'Usage: tsx src/jobs/runner.ts <backfill|daily|retry|intervention-backfill> [--from-year=YYYY] [--to-year=YYYY] [--concurrency=N]',
+    );
     process.exit(1);
   }
 
@@ -56,7 +60,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error(err);
   process.exit(1);
 });

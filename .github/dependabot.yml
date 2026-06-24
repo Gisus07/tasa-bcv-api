@@ -2,54 +2,54 @@ version: 2
 
 updates:
   # JavaScript dependencies (pnpm)
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Caracas"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/Caracas'
     open-pull-requests-limit: 5
-    versioning-strategy: "increase"
+    versioning-strategy: 'increase'
     labels:
-      - "dependencies"
+      - 'dependencies'
     groups:
       # Bundle minor/patch updates into one PR so we don't drown in noise.
       # Majors keep getting their own PR so each can be reviewed individually.
       minor-and-patch:
         applies-to: version-updates
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       security-updates:
         applies-to: security-updates
-        patterns: ["*"]
+        patterns: ['*']
     ignore:
       # Pin Node major; we control runtime upgrades via .nvmrc + Dockerfile.
-      - dependency-name: "node"
+      - dependency-name: 'node'
 
   # GitHub Actions workflow dependencies
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Caracas"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/Caracas'
     open-pull-requests-limit: 3
     labels:
-      - "ci"
-      - "dependencies"
+      - 'ci'
+      - 'dependencies'
 
   # Docker base image
-  - package-ecosystem: "docker"
-    directory: "/"
+  - package-ecosystem: 'docker'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "09:00"
-      timezone: "America/Caracas"
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/Caracas'
     open-pull-requests-limit: 2
     labels:
-      - "docker"
-      - "dependencies"
+      - 'docker'
+      - 'dependencies'

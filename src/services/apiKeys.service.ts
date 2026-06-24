@@ -1,7 +1,12 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { and, desc, eq, gte, isNull, sql } from 'drizzle-orm';
 import type { Database } from '../db/client.js';
-import { apiKeys, apiKeyUsageDaily, type ApiKey, type ApiKeyUsageDaily } from '../db/schema.js';
+import {
+  apiKeys,
+  apiKeyUsageDaily,
+  type ApiKey,
+  type ApiKeyUsageDaily,
+} from '../db/schema.js';
 import { addDays, todayCaracas } from '../lib/dates.js';
 
 /** All issued keys start with this prefix so they're identifiable in logs / leaks. */
@@ -54,7 +59,10 @@ export function visiblePrefix(plainKey: string): string {
 }
 
 /** Creates a new active key. Returns both the plaintext (one-time) and the DB record. */
-export async function createKey(d: Database, input: CreateKeyInput): Promise<CreatedKey> {
+export async function createKey(
+  d: Database,
+  input: CreateKeyInput,
+): Promise<CreatedKey> {
   const plain = generatePlainKey();
   const rows = await d
     .insert(apiKeys)
@@ -80,7 +88,9 @@ export async function findActiveByPlainKey(
   const rows = await d
     .select()
     .from(apiKeys)
-    .where(and(eq(apiKeys.keyHash, hashKey(plainKey)), isNull(apiKeys.revokedAt)))
+    .where(
+      and(eq(apiKeys.keyHash, hashKey(plainKey)), isNull(apiKeys.revokedAt)),
+    )
     .limit(1);
   return rows[0];
 }
@@ -128,7 +138,9 @@ export async function getDailyUsage(
   return d
     .select()
     .from(apiKeyUsageDaily)
-    .where(and(eq(apiKeyUsageDaily.keyId, keyId), gte(apiKeyUsageDaily.date, since)))
+    .where(
+      and(eq(apiKeyUsageDaily.keyId, keyId), gte(apiKeyUsageDaily.date, since)),
+    )
     .orderBy(desc(apiKeyUsageDaily.date));
 }
 

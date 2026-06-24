@@ -19,7 +19,10 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
     if (status >= 500) {
       // Full detail to the logs; never ship internal details (DB cause,
       // upstream stack) to clients in production (SEC-3).
-      logger().error({ code: body.code, details: err.details }, 'server-side AppError');
+      logger().error(
+        { code: body.code, details: err.details },
+        'server-side AppError',
+      );
       if (env().NODE_ENV === 'production') delete body.details;
     }
     return c.json(body, status as ContentfulStatusCode);
@@ -48,16 +51,25 @@ export const errorHandler: ErrorHandler = (err, c: Context) => {
             : err.status >= 400 && err.status < 500
               ? 'VALIDATION_ERROR'
               : 'INTERNAL';
-    return c.json({ error: err.message || 'Solicitud fallida', code }, err.status);
+    return c.json(
+      { error: err.message || 'Solicitud fallida', code },
+      err.status,
+    );
   }
 
   // Unknown error — log full stack, return generic message.
   logger().error(
-    { err: err instanceof Error ? { message: err.message, stack: err.stack } : err },
+    {
+      err:
+        err instanceof Error ? { message: err.message, stack: err.stack } : err,
+    },
     'unhandled error',
   );
   return c.json(
-    { error: 'Error interno del servidor', code: 'INTERNAL' satisfies ErrorCode },
+    {
+      error: 'Error interno del servidor',
+      code: 'INTERNAL' satisfies ErrorCode,
+    },
     500,
   );
 };

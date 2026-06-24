@@ -11,16 +11,17 @@ export const SingleRate = z
   .object({
     date: DateString,
     currency: CurrencyEnum,
-    rate: z
-      .number()
-      .positive()
-      .openapi({ example: 510.7873, description: 'Tasa de venta oficial publicada por el BCV' }),
+    rate: z.number().positive().openapi({
+      example: 510.7873,
+      description: 'Tasa de venta oficial publicada por el BCV',
+    }),
     is_propagated: z.literal(true).optional().openapi({
       description:
         'Solo aparece cuando el valor fue heredado (fin de semana o feriado). En días con publicación real este campo no se incluye.',
     }),
     propagated_from: DateString.optional().openapi({
-      description: 'Fecha origen de la propagación. Solo presente cuando `is_propagated` lo está.',
+      description:
+        'Fecha origen de la propagación. Solo presente cuando `is_propagated` lo está.',
     }),
   })
   .openapi('SingleRate');
@@ -74,7 +75,8 @@ export const RangeResponse = z
 export const LastUpdatedResponse = z
   .object({
     has_data: z.boolean().openapi({
-      description: 'false cuando aún no hay ningún ingest exitoso (base recién creada).',
+      description:
+        'false cuando aún no hay ningún ingest exitoso (base recién creada).',
     }),
     last_successful_run_at: z.string().datetime().nullable(),
     last_successful_job_type: z.string().nullable(),
@@ -117,14 +119,20 @@ export const RegisterKeyResponse = z
   .object({
     key: z.string().openapi({
       example: 'tbk_a1b2c3d4e5f6789012345678abcdefabcdefabcdefabcdef',
-      description: 'La API key en texto plano. Guárdala AHORA — solo se muestra esta vez.',
+      description:
+        'La API key en texto plano. Guárdala AHORA — solo se muestra esta vez.',
     }),
     key_prefix: z.string().openapi({
       example: 'tbk_a1b2c3d4',
-      description: 'Prefijo visible que identifica la key (sin exponer el secreto).',
+      description:
+        'Prefijo visible que identifica la key (sin exponer el secreto).',
     }),
     tier: z.string().openapi({ example: 'free' }),
-    rate_limit_per_minute: z.number().int().positive().openapi({ example: 300 }),
+    rate_limit_per_minute: z
+      .number()
+      .int()
+      .positive()
+      .openapi({ example: 300 }),
     created_at: z.string().datetime(),
     usage: z.object({
       tip: z.string(),
@@ -190,12 +198,18 @@ export const KeyUsageDay = z
 export const KeyUsageResponse = z
   .object({
     key_prefix: z.string(),
-    days: z.number().int().positive().openapi({ example: 30, description: 'Ventana solicitada' }),
+    days: z
+      .number()
+      .int()
+      .positive()
+      .openapi({ example: 30, description: 'Ventana solicitada' }),
     total_requests: z.number().int().nonnegative().openapi({
-      description: 'Suma de requests en la ventana (no incluye días sin uso, esos no se almacenan).',
+      description:
+        'Suma de requests en la ventana (no incluye días sin uso, esos no se almacenan).',
     }),
     usage: z.array(KeyUsageDay).openapi({
-      description: 'Días con uso, ordenados de más reciente a más antiguo. Días sin uso no aparecen.',
+      description:
+        'Días con uso, ordenados de más reciente a más antiguo. Días sin uso no aparecen.',
     }),
   })
   .openapi('KeyUsageResponse');
@@ -208,5 +222,8 @@ export const UsageQuery = z.object({
     .max(365, '`days` no puede ser mayor a 365')
     .optional()
     .default(30)
-    .openapi({ example: 30, description: 'Días hacia atrás a incluir (1-365). Default 30.' }),
+    .openapi({
+      example: 30,
+      description: 'Días hacia atrás a incluir (1-365). Default 30.',
+    }),
 });

@@ -31,7 +31,8 @@ const route = createRoute({
           schema: z
             .object({
               await: z.boolean().optional().default(false).openapi({
-                description: 'Cuando es true, espera a que la re-ingesta termine antes de responder.',
+                description:
+                  'Cuando es true, espera a que la re-ingesta termine antes de responder.',
               }),
             })
             .openapi('ReingestRequest'),
@@ -62,7 +63,10 @@ adminReingest.openapi(route, async (c) => {
   const body = c.req.valid('json');
   const awaitJob = body?.await ?? false;
   const log = logger().child({ component: 'admin-reingest' });
-  log.info({ await: awaitJob }, 'admin-triggered reingest (backfill) requested');
+  log.info(
+    { await: awaitJob },
+    'admin-triggered reingest (backfill) requested',
+  );
 
   if (awaitJob) {
     await runBackfill(db());
@@ -74,10 +78,17 @@ adminReingest.openapi(route, async (c) => {
 
   // Fire-and-forget; the backfill logs its own progress and respects the lock.
   void runBackfill(db()).catch((err) => {
-    log.error({ err: err instanceof Error ? err.message : err }, 'background reingest failed');
+    log.error(
+      { err: err instanceof Error ? err.message : err },
+      'background reingest failed',
+    );
   });
   return c.json(
-    { job_type: 'backfill', started: true, message: 'Reingest started in background.' },
+    {
+      job_type: 'backfill',
+      started: true,
+      message: 'Reingest started in background.',
+    },
     202,
   );
 });

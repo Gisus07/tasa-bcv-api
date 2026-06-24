@@ -1,0 +1,15 @@
+# Generado / vendored — no formatear
+node_modules
+dist
+coverage
+pnpm-lock.yaml
+
+# Migraciones y metadatos de Drizzle (SQL/JSON generados)
+drizzle
+
+# Código heredado (bot Python) y fixtures de prueba
+legacy
+fixtures
+
+# Markdown: fuera de este lote para mantener el diff enfocado en código
+*.md

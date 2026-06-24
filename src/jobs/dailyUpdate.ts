@@ -53,7 +53,11 @@ export async function runDailyUpdate(
     // Also refresh the current EUR quarter so late corrections are captured.
     const yyyy = Number(today.slice(0, 4));
     const mm = Number(today.slice(5, 7));
-    const eurQuarter = await ingestCurrentEurQuarter(d, yyyy, monthToQuarterLetter(mm));
+    const eurQuarter = await ingestCurrentEurQuarter(
+      d,
+      yyyy,
+      monthToQuarterLetter(mm),
+    );
     totalUpserted += eurQuarter.rowsUpserted;
     totalFiles += eurQuarter.filesFetched;
 
@@ -83,8 +87,18 @@ export async function runDailyUpdate(
       getLatestRealDate(d, 'USD'),
       getLatestRealDate(d, 'EUR'),
     ]);
-    totalUpserted += await propagateGaps(d, 'USD', windowStartFor(lastRealUsd), windowEndFor(lastRealUsd));
-    totalUpserted += await propagateGaps(d, 'EUR', windowStartFor(lastRealEur), windowEndFor(lastRealEur));
+    totalUpserted += await propagateGaps(
+      d,
+      'USD',
+      windowStartFor(lastRealUsd),
+      windowEndFor(lastRealUsd),
+    );
+    totalUpserted += await propagateGaps(
+      d,
+      'EUR',
+      windowStartFor(lastRealEur),
+      windowEndFor(lastRealEur),
+    );
 
     const usdToday = await getByDate(d, today, 'USD');
     const eurToday = await getByDate(d, today, 'EUR');
@@ -95,10 +109,21 @@ export async function runDailyUpdate(
       { runId, today, capturedToday, totalUpserted, totalFiles },
       'daily update complete',
     );
-    return { capturedToday, rowsUpserted: totalUpserted, filesFetched: totalFiles };
+    return {
+      capturedToday,
+      rowsUpserted: totalUpserted,
+      filesFetched: totalFiles,
+    };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await completeIngestRun(d, runId, 'error', totalUpserted, totalFiles, message);
+    await completeIngestRun(
+      d,
+      runId,
+      'error',
+      totalUpserted,
+      totalFiles,
+      message,
+    );
     log.error({ runId, err: message }, 'daily update failed');
     throw err;
   }

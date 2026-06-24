@@ -28,7 +28,13 @@ export async function propagateGaps(
   const existing: Rate[] = await d
     .select()
     .from(rates)
-    .where(and(eq(rates.currency, currency), gte(rates.date, fromIso), lte(rates.date, toIso)));
+    .where(
+      and(
+        eq(rates.currency, currency),
+        gte(rates.date, fromIso),
+        lte(rates.date, toIso),
+      ),
+    );
   const byDate = new Map(existing.map((r) => [r.date, r]));
 
   // Seed with the most recent rate before `fromIso` when the window does NOT
