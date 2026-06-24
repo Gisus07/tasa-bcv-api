@@ -29,7 +29,7 @@ export function startCron(): void {
 
   if (dailyTask || retryTask || parallelTask || interventionTask) {
     log.warn('cron already started; restarting');
-    stopCron();
+    void stopCron();
   }
 
   dailyTask = cron.schedule(
@@ -131,13 +131,14 @@ export function startCron(): void {
   );
 }
 
-export function stopCron(): void {
-  dailyTask?.stop();
-  retryTask?.stop();
-  parallelTask?.stop();
-  interventionTask?.stop();
+export async function stopCron(): Promise<void> {
+  // node-cron v4: stop() es asíncrono. Limpiamos las referencias de forma
+  // síncrona (para que un startCron inmediato no choque con un stop en vuelo)
+  // y luego esperamos a que las tareas terminen de detenerse.
+  const tasks = [dailyTask, retryTask, parallelTask, interventionTask];
   dailyTask = undefined;
   retryTask = undefined;
   parallelTask = undefined;
   interventionTask = undefined;
+  await Promise.all(tasks.map((task) => task?.stop() ?? Promise.resolve()));
 }
