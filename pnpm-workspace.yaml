@@ -9,3 +9,10 @@ overrides:
   # Low (dev): solo la 0.28.0 (de drizzle-kit) cae en el rango vulnerable;
   # se parchea sin tocar las demás versiones de esbuild del árbol.
   'esbuild@0.28.0': '^0.28.1'
+  # High/medium/low (runtime): undici 7.x transitiva (de cheerio y
+  # testcontainers). Selectivo a la rama 7.x → 7.28.0 para NO tocar nuestra
+  # undici directa 8.x.
+  'undici@>=7.0.0 <8.0.0': '^7.28.0'
+  # High/medium (dev): vite (de vitest); el dev server vulnerable nunca corre
+  # en CI/prod, pero se sube a la versión parcheada.
+  vite: '^6.4.3'
