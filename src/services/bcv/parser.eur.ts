@@ -37,7 +37,10 @@ export interface ParseEurResult {
  * parsed (instead of throwing on the first failure). Useful for the backfill
  * job, which logs the skipped count rather than discarding a whole quarter.
  */
-export function parseEurWorkbookSafe(buffer: Buffer, sourceFile: string): ParseEurResult {
+export function parseEurWorkbookSafe(
+  buffer: Buffer,
+  sourceFile: string,
+): ParseEurResult {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const records: RateRecord[] = [];
   const skipped: { sheet: string; reason: string }[] = [];
@@ -75,7 +78,10 @@ export function parseEurWorkbookSafe(buffer: Buffer, sourceFile: string): ParseE
   return { records, skipped };
 }
 
-export function parseEurWorkbook(buffer: Buffer, sourceFile: string): RateRecord[] {
+export function parseEurWorkbook(
+  buffer: Buffer,
+  sourceFile: string,
+): RateRecord[] {
   const wb = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const records: RateRecord[] = [];
 
@@ -203,7 +209,10 @@ function findVentaBsColumn(rows: unknown[][]): number {
       //   "Bs.S/M.E."   (theoretical variant with both peculiarities)
       // The regex accepts an optional "S" suffix on Bs. and an optional
       // trailing period on M.E.
-      if (typeof cell === 'string' && /^\s*Bs\.\s*S?\s*\/\s*M\.E\.?\s*$/i.test(cell)) {
+      if (
+        typeof cell === 'string' &&
+        /^\s*Bs\.\s*S?\s*\/\s*M\.E\.?\s*$/i.test(cell)
+      ) {
         bsAnchorCol = c;
         bsAnchorRow = r;
         break;

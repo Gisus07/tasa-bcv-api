@@ -12,6 +12,9 @@ concurrency:
 
 jobs:
   test:
+    # NOTE: el nombre del job es el "context" que exige la branch protection de
+    # main. Aunque ahora también corra lint + format, NO lo renombres sin
+    # actualizar la regla de protección, o quedará exigiendo un check inexistente.
     name: typecheck + tests + build
     runs-on: ubuntu-latest
 
@@ -35,6 +38,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint:ci
+
+      - name: Check formatting
+        run: pnpm format:check
 
       - name: Typecheck
         run: pnpm typecheck

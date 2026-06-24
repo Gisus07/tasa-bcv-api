@@ -40,7 +40,9 @@ async function main(): Promise<void> {
     logger().fatal(
       {
         reason:
-          reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+          reason instanceof Error
+            ? { message: reason.message, stack: reason.stack }
+            : reason,
       },
       'unhandledRejection — exiting',
     );
@@ -125,7 +127,9 @@ async function main(): Promise<void> {
         resolve();
       });
     });
-    await disposeBcvClient().catch((err) => log.warn({ err }, 'bcv client close failed'));
+    await disposeBcvClient().catch((err) =>
+      log.warn({ err }, 'bcv client close failed'),
+    );
     await closeDb().catch((err) => log.warn({ err }, 'db close failed'));
     log.info('bye');
     process.exit(0);
@@ -136,7 +140,10 @@ async function main(): Promise<void> {
 
 main().catch((err) => {
   logger().error(
-    { err: err instanceof Error ? { message: err.message, stack: err.stack } : err },
+    {
+      err:
+        err instanceof Error ? { message: err.message, stack: err.stack } : err,
+    },
     'fatal error during startup',
   );
   process.exit(1);

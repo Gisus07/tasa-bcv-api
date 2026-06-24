@@ -91,7 +91,9 @@ describe('iterateDays', () => {
     ]);
   });
   it('yields a single day when from === to', () => {
-    expect([...iterateDays('2026-05-14', '2026-05-14')]).toEqual(['2026-05-14']);
+    expect([...iterateDays('2026-05-14', '2026-05-14')]).toEqual([
+      '2026-05-14',
+    ]);
   });
 });
 

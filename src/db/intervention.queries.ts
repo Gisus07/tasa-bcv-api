@@ -1,13 +1,20 @@
 import { and, asc, desc, eq, gte, lte, sql } from 'drizzle-orm';
 import type { Database } from './client.js';
-import { interventions, type Intervention, type NewIntervention } from './schema.js';
+import {
+  interventions,
+  type Intervention,
+  type NewIntervention,
+} from './schema.js';
 
 /**
  * Idempotent batch upsert of intervention rows. On conflict (same date) it
  * updates only when the rate or number actually changed, so re-seeding the full
  * history or re-running the daily check is a no-op for unchanged rows.
  */
-export async function upsertInterventions(d: Database, batch: NewIntervention[]): Promise<number> {
+export async function upsertInterventions(
+  d: Database,
+  batch: NewIntervention[],
+): Promise<number> {
   if (batch.length === 0) return 0;
   // Dedupe by date (last wins). The BCV table has one row per day, but guard
   // against a parsed batch containing a date twice (ON CONFLICT rejects dupes
@@ -34,7 +41,9 @@ export async function upsertInterventions(d: Database, batch: NewIntervention[])
 }
 
 /** Most recent intervention. Events are punctual — there is no propagation. */
-export async function getLatestIntervention(d: Database): Promise<Intervention | undefined> {
+export async function getLatestIntervention(
+  d: Database,
+): Promise<Intervention | undefined> {
   const rows = await d
     .select()
     .from(interventions)

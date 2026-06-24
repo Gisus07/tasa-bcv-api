@@ -7,7 +7,12 @@ import {
   listKeys,
   revokeKey,
 } from './apiKeys.service.js';
-import { clearTables, startTestDb, stopTestDb, type TestDb } from '../__tests__/testcontainer.helper.js';
+import {
+  clearTables,
+  startTestDb,
+  stopTestDb,
+  type TestDb,
+} from '../__tests__/testcontainer.helper.js';
 
 describe('apiKeys.service with real Postgres', () => {
   let env: TestDb;
@@ -61,12 +66,18 @@ describe('apiKeys.service with real Postgres', () => {
     });
 
     it('returns undefined for an unknown plaintext', async () => {
-      const found = await findActiveByPlainKey(env.db, 'tbk_unknownunknownunknownunknownunknownunknownun');
+      const found = await findActiveByPlainKey(
+        env.db,
+        'tbk_unknownunknownunknownunknownunknownunknownun',
+      );
       expect(found).toBeUndefined();
     });
 
     it('returns undefined for a revoked key', async () => {
-      const { key, record } = await createKey(env.db, { email: 'r@b.com', name: 'R' });
+      const { key, record } = await createKey(env.db, {
+        email: 'r@b.com',
+        name: 'R',
+      });
       await revokeKey(env.db, record.id);
       const found = await findActiveByPlainKey(env.db, key);
       expect(found).toBeUndefined();
@@ -80,7 +91,10 @@ describe('apiKeys.service with real Postgres', () => {
 
   describe('bumpUsage', () => {
     it('increments request_count and stamps last_used_at', async () => {
-      const { record } = await createKey(env.db, { email: 'b@b.com', name: 'B' });
+      const { record } = await createKey(env.db, {
+        email: 'b@b.com',
+        name: 'B',
+      });
       await bumpUsage(env.db, record.id);
       await bumpUsage(env.db, record.id);
       await bumpUsage(env.db, record.id);
@@ -93,7 +107,10 @@ describe('apiKeys.service with real Postgres', () => {
     });
 
     it('accumulates the daily histogram for today', async () => {
-      const { record } = await createKey(env.db, { email: 'h@b.com', name: 'H' });
+      const { record } = await createKey(env.db, {
+        email: 'h@b.com',
+        name: 'H',
+      });
       for (let i = 0; i < 5; i++) {
         await bumpUsage(env.db, record.id);
       }
@@ -105,7 +122,10 @@ describe('apiKeys.service with real Postgres', () => {
 
   describe('revokeKey', () => {
     it('soft-deletes by setting revoked_at', async () => {
-      const { record } = await createKey(env.db, { email: 'rv@b.com', name: 'Rv' });
+      const { record } = await createKey(env.db, {
+        email: 'rv@b.com',
+        name: 'Rv',
+      });
       const ok = await revokeKey(env.db, record.id);
       expect(ok).toBe(true);
 
@@ -142,7 +162,10 @@ describe('apiKeys.service with real Postgres', () => {
 
   describe('getDailyUsage', () => {
     it('returns empty array when nothing has been recorded', async () => {
-      const { record } = await createKey(env.db, { email: 'q@b.com', name: 'Q' });
+      const { record } = await createKey(env.db, {
+        email: 'q@b.com',
+        name: 'Q',
+      });
       const usage = await getDailyUsage(env.db, record.id, 30);
       expect(usage).toEqual([]);
     });

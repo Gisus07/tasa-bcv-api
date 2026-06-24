@@ -18,7 +18,10 @@ export type ZodHookResult =
   | { success: true; data: unknown }
   | { success: false; error: ZodError };
 
-export function defaultZodHook(result: ZodHookResult, c: Context): Response | undefined {
+export function defaultZodHook(
+  result: ZodHookResult,
+  c: Context,
+): Response | undefined {
   if (!result.success) {
     return c.json(
       {

@@ -13,7 +13,9 @@ const route = createRoute({
   summary: 'Tasas USD y EUR para una fecha específica',
   description:
     'Devuelve ambas monedas para la fecha indicada. Fines de semana y feriados se devuelven con `propagated_currencies` indicando qué monedas se heredaron del último día hábil.',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/rates/2026-05-14' }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/rates/2026-05-14' }),
+  } as Record<string, unknown>),
   request: { params: ByDateParams },
   responses: {
     200: {
@@ -69,7 +71,8 @@ const route = createRoute({
             out_of_range: {
               summary: 'Fecha futura',
               value: {
-                error: 'La fecha 2027-01-01 está en el futuro. Máxima permitida: 2026-05-20.',
+                error:
+                  'La fecha 2027-01-01 está en el futuro. Máxima permitida: 2026-05-20.',
                 code: 'DATE_OUT_OF_RANGE',
                 details: { date: '2027-01-01', maxDate: '2026-05-20' },
               },
@@ -77,9 +80,14 @@ const route = createRoute({
             before_history: {
               summary: 'Fecha anterior al histórico',
               value: {
-                error: 'No hay datos históricos para USD antes de 2016-01-04. Solicitado: 2015-12-31.',
+                error:
+                  'No hay datos históricos para USD antes de 2016-01-04. Solicitado: 2015-12-31.',
                 code: 'DATE_BEFORE_HISTORY',
-                details: { date: '2015-12-31', minDate: '2016-01-04', currency: 'USD' },
+                details: {
+                  date: '2015-12-31',
+                  minDate: '2016-01-04',
+                  currency: 'USD',
+                },
               },
             },
             invalid_format: {

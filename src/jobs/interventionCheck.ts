@@ -1,5 +1,8 @@
 import type { Database } from '../db/client.js';
-import { getInterventionByDate, upsertInterventions } from '../db/intervention.queries.js';
+import {
+  getInterventionByDate,
+  upsertInterventions,
+} from '../db/intervention.queries.js';
 import { getByDate } from '../db/queries.js';
 import { todayCaracas } from '../lib/dates.js';
 import { logger } from '../logger.js';
@@ -20,13 +23,18 @@ export interface InterventionCheckResult {
  * page. If today's row is missing, it proceeds anyway (better a wasted check
  * than a missed intervention). Best-effort: upstream errors are logged, not thrown.
  */
-export async function runInterventionCheck(d: Database): Promise<InterventionCheckResult> {
+export async function runInterventionCheck(
+  d: Database,
+): Promise<InterventionCheckResult> {
   const log = logger().child({ job: 'intervention-check' });
   const today = todayCaracas();
 
   const todayRate = await getByDate(d, today, 'USD');
   if (todayRate?.isPropagated) {
-    log.info({ today }, 'skip: propagated day (holiday/weekend), no intervention');
+    log.info(
+      { today },
+      'skip: propagated day (holiday/weekend), no intervention',
+    );
     return { checked: false, captured: false };
   }
 
@@ -35,12 +43,15 @@ export async function runInterventionCheck(d: Database): Promise<InterventionChe
     if (await getInterventionByDate(d, today)) {
       return { checked: true, captured: false };
     }
-    const todays = (await scrapeInterventions()).filter((r) => r.date === today);
+    const todays = (await scrapeInterventions()).filter(
+      (r) => r.date === today,
+    );
     if (todays.length === 0) {
       return { checked: true, captured: false }; // no intervention announced yet
     }
     const n = await upsertInterventions(d, todays.map(toNewIntervention));
-    if (n > 0) log.info({ today, intervention: todays[0] }, 'intervention captured');
+    if (n > 0)
+      log.info({ today, intervention: todays[0] }, 'intervention captured');
     return { checked: true, captured: n > 0 };
   } catch (err) {
     log.error(

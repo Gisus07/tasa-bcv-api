@@ -1,5 +1,8 @@
 import type { Database } from '../db/client.js';
-import { getLatestIntervention, upsertInterventions } from '../db/intervention.queries.js';
+import {
+  getLatestIntervention,
+  upsertInterventions,
+} from '../db/intervention.queries.js';
 import type { NewIntervention } from '../db/schema.js';
 import { logger } from '../logger.js';
 import {
@@ -25,7 +28,10 @@ export async function runInterventionBackfill(d: Database): Promise<number> {
   const log = logger().child({ job: 'intervention-backfill' });
   const records = await scrapeInterventions();
   const upserted = await upsertInterventions(d, records.map(toNewIntervention));
-  log.info({ records: records.length, upserted }, 'intervention backfill complete');
+  log.info(
+    { records: records.length, upserted },
+    'intervention backfill complete',
+  );
   return upserted;
 }
 

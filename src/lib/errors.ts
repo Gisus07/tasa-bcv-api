@@ -112,19 +112,42 @@ export class RateLimitError extends AppError {
 
 export class UpstreamFormatError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super('UPSTREAM_FORMAT', 502, `Problema de formato en la fuente del BCV: ${message}`, details);
+    super(
+      'UPSTREAM_FORMAT',
+      502,
+      `Problema de formato en la fuente del BCV: ${message}`,
+      details,
+    );
   }
 }
 
 export class UpstreamUnavailableError extends AppError {
   constructor(message: string, details?: Record<string, unknown>) {
-    super('UPSTREAM_UNAVAILABLE', 502, `Fuente del BCV no disponible: ${message}`, details);
+    super(
+      'UPSTREAM_UNAVAILABLE',
+      502,
+      `Fuente del BCV no disponible: ${message}`,
+      details,
+    );
+  }
+}
+
+/** Serializa una causa `unknown` de catch sin caer en `[object Object]`. */
+function describeCause(cause: unknown): string {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === 'string') return cause;
+  try {
+    return JSON.stringify(cause) ?? '';
+  } catch {
+    return '';
   }
 }
 
 export class DatabaseDownError extends AppError {
   constructor(cause?: unknown) {
-    super('DB_DOWN', 503, 'Base de datos no disponible', { cause: String(cause ?? '') });
+    super('DB_DOWN', 503, 'Base de datos no disponible', {
+      cause: describeCause(cause),
+    });
   }
 }
 

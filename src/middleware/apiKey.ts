@@ -3,7 +3,11 @@ import { db } from '../db/client.js';
 import type { ApiKey } from '../db/schema.js';
 import { UnauthorizedError } from '../lib/errors.js';
 import { logger } from '../logger.js';
-import { bumpUsage, findActiveByPlainKey, KEY_PREFIX } from '../services/apiKeys.service.js';
+import {
+  bumpUsage,
+  findActiveByPlainKey,
+  KEY_PREFIX,
+} from '../services/apiKeys.service.js';
 
 declare module 'hono' {
   interface ContextVariableMap {
@@ -28,7 +32,10 @@ declare module 'hono' {
  */
 export function apiKeyResolver(): MiddlewareHandler {
   return async (c, next) => {
-    const presented = extractKey(c.req.header('authorization'), c.req.header('x-api-key'));
+    const presented = extractKey(
+      c.req.header('authorization'),
+      c.req.header('x-api-key'),
+    );
     if (!presented) {
       c.set('apiKey', null);
       return next();

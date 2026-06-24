@@ -61,10 +61,16 @@ describe('intervention queries (real Postgres via testcontainers)', () => {
   });
 
   it('updates only when the rate or number changes', async () => {
-    await upsertInterventions(env.db, [iv('2026-05-21', '011-26', '710.95000000')]);
-    const changed = await upsertInterventions(env.db, [iv('2026-05-21', '011-26', '711.00000000')]);
+    await upsertInterventions(env.db, [
+      iv('2026-05-21', '011-26', '710.95000000'),
+    ]);
+    const changed = await upsertInterventions(env.db, [
+      iv('2026-05-21', '011-26', '711.00000000'),
+    ]);
     expect(changed).toBe(1);
-    expect((await getInterventionByDate(env.db, '2026-05-21'))?.rate).toBe('711.00000000');
+    expect((await getInterventionByDate(env.db, '2026-05-21'))?.rate).toBe(
+      '711.00000000',
+    );
   });
 
   it('dedupes a batch with the same date (last wins)', async () => {
@@ -73,7 +79,9 @@ describe('intervention queries (real Postgres via testcontainers)', () => {
       iv('2026-05-21', '011-26', '710.95000000'),
     ]);
     expect(n).toBe(1);
-    expect((await getInterventionByDate(env.db, '2026-05-21'))?.rate).toBe('710.95000000');
+    expect((await getInterventionByDate(env.db, '2026-05-21'))?.rate).toBe(
+      '710.95000000',
+    );
   });
 
   it('getInterventionHistory returns the range, oldest first', async () => {
@@ -82,12 +90,18 @@ describe('intervention queries (real Postgres via testcontainers)', () => {
       iv('2026-05-19', '011-26', '710.35000000'),
       iv('2026-05-21', '011-26', '710.95000000'),
     ]);
-    const rows = await getInterventionHistory(env.db, '2026-05-14', '2026-05-21');
+    const rows = await getInterventionHistory(
+      env.db,
+      '2026-05-14',
+      '2026-05-21',
+    );
     expect(rows.map((r) => r.date)).toEqual(['2026-05-19', '2026-05-21']);
   });
 
   it('getInterventionByDate returns undefined when no intervention that day', async () => {
-    await upsertInterventions(env.db, [iv('2026-05-21', '011-26', '710.95000000')]);
+    await upsertInterventions(env.db, [
+      iv('2026-05-21', '011-26', '710.95000000'),
+    ]);
     expect(await getInterventionByDate(env.db, '2026-05-22')).toBeUndefined();
   });
 });

@@ -114,7 +114,9 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       const to = c.req.query('to');
       c.header(
         'Cache-Control',
-        to && to < todayCaracas() ? 'public, max-age=86400' : 'public, max-age=300',
+        to && to < todayCaracas()
+          ? 'public, max-age=86400'
+          : 'public, max-age=300',
       );
     } else {
       c.header('Cache-Control', 'public, max-age=600');
@@ -130,7 +132,11 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
       origin: '*',
       allowMethods: ['GET', 'POST', 'OPTIONS'],
       allowHeaders: ['Content-Type', 'Authorization'],
-      exposeHeaders: ['X-API-Version', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+      exposeHeaders: [
+        'X-API-Version',
+        'X-RateLimit-Remaining',
+        'X-RateLimit-Reset',
+      ],
       maxAge: 86400,
     }),
   );
@@ -170,16 +176,23 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
         url: 'https://www.gnu.org/licenses/agpl-3.0.html',
       },
     },
-    servers: [
-      { url: PRODUCTION_URL, description: 'Producción' },
-    ],
+    servers: [{ url: PRODUCTION_URL, description: 'Producción' }],
     tags: [
       { name: 'rates', description: 'Consultas de tasas de cambio' },
-      { name: 'parallel', description: 'Tasa paralela (Binance P2P, USDT/VES)' },
-      { name: 'intervention', description: 'Intervención cambiaria del BCV (Bs./EUR)' },
+      {
+        name: 'parallel',
+        description: 'Tasa paralela (Binance P2P, USDT/VES)',
+      },
+      {
+        name: 'intervention',
+        description: 'Intervención cambiaria del BCV (Bs./EUR)',
+      },
       { name: 'keys', description: 'Gestión de API keys del tier Free' },
       { name: 'system', description: 'Estado y metadatos' },
-      { name: 'admin', description: 'Endpoints administrativos (requieren bearer token)' },
+      {
+        name: 'admin',
+        description: 'Endpoints administrativos (requieren bearer token)',
+      },
     ],
     externalDocs: {
       description: 'Código fuente y documentación extendida',
@@ -211,16 +224,23 @@ export function createApp(options: AppOptions = {}): OpenAPIHono {
           url: 'https://www.gnu.org/licenses/agpl-3.0.html',
         },
       },
-      servers: [
-        { url: PRODUCTION_URL, description: 'Production' },
-      ],
+      servers: [{ url: PRODUCTION_URL, description: 'Production' }],
       tags: [
         { name: 'rates', description: 'Exchange rate queries' },
-        { name: 'parallel', description: 'Parallel rate (Binance P2P, USDT/VES)' },
-        { name: 'intervention', description: 'BCV exchange intervention (Bs./EUR)' },
+        {
+          name: 'parallel',
+          description: 'Parallel rate (Binance P2P, USDT/VES)',
+        },
+        {
+          name: 'intervention',
+          description: 'BCV exchange intervention (Bs./EUR)',
+        },
         { name: 'keys', description: 'Free-tier API key management' },
         { name: 'system', description: 'Health and metadata' },
-        { name: 'admin', description: 'Administrative endpoints (require bearer token)' },
+        {
+          name: 'admin',
+          description: 'Administrative endpoints (require bearer token)',
+        },
       ],
       externalDocs: {
         description: 'Source code and extended documentation',

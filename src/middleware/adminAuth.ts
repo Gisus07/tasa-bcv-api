@@ -11,7 +11,9 @@ export function adminAuth(): MiddlewareHandler {
   return async (c, next) => {
     const expected = env().ADMIN_TOKEN;
     if (!expected) {
-      throw new UnauthorizedError('Admin endpoints are disabled (ADMIN_TOKEN not configured)');
+      throw new UnauthorizedError(
+        'Admin endpoints are disabled (ADMIN_TOKEN not configured)',
+      );
     }
     const header = c.req.header('authorization');
     const token = header?.match(/^Bearer\s+(.+)$/i)?.[1];

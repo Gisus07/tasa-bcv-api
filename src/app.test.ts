@@ -145,7 +145,9 @@ describe('createApp', () => {
     // Re-import env cache reset is not exposed in the public app surface;
     // the middleware reads env() on every request so updating process.env is enough.
     const app = createApp({ disableRateLimit: true });
-    const res = await app.request('/v1/admin/trigger-ingest', { method: 'POST' });
+    const res = await app.request('/v1/admin/trigger-ingest', {
+      method: 'POST',
+    });
     expect(res.status).toBe(401);
     const body = (await res.json()) as { code: string };
     expect(body.code).toBe('UNAUTHORIZED');

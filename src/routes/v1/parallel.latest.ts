@@ -13,7 +13,9 @@ const route = createRoute({
   summary: 'Tasa paralela en vivo (Binance P2P, USDT/VES)',
   description:
     'Tasa paralela actual ("dólar Binance", USDT/VES) consultada en vivo desde Binance P2P (cache de 30s). Mediana del top-10 de ofertas. `buy` = Bs para comprar 1 USDT, `sell` = al vender, `average` = referencia. Si Binance no responde, devuelve el último snapshot horario almacenado.',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/parallel/latest' }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/parallel/latest' }),
+  } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Tasa paralela actual',

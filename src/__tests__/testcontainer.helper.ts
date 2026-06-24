@@ -1,4 +1,7 @@
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import {
+  PostgreSqlContainer,
+  type StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
 import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
@@ -57,7 +60,9 @@ export async function stopTestDb(): Promise<void> {
  * Clears every domain table while leaving the schema intact. Cheaper than
  * recreating the container between tests.
  */
-export async function clearTables(d: NodePgDatabase<typeof schema>): Promise<void> {
+export async function clearTables(
+  d: NodePgDatabase<typeof schema>,
+): Promise<void> {
   await d.execute(
     sql`TRUNCATE TABLE rates, ingest_runs, api_keys, api_key_usage_daily, parallel_rates, interventions RESTART IDENTITY CASCADE`,
   );

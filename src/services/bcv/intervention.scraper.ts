@@ -1,5 +1,8 @@
 import { load } from 'cheerio';
-import { UpstreamFormatError, UpstreamUnavailableError } from '../../lib/errors.js';
+import {
+  UpstreamFormatError,
+  UpstreamUnavailableError,
+} from '../../lib/errors.js';
 import { fetchBcv } from './client.js';
 import { interventionUrl } from './urls.js';
 
@@ -23,7 +26,9 @@ export interface InterventionRecord {
 export async function scrapeInterventions(): Promise<InterventionRecord[]> {
   const result = await fetchBcv(interventionUrl());
   if (!result) {
-    throw new UpstreamUnavailableError('BCV intervention page returned no body');
+    throw new UpstreamUnavailableError(
+      'BCV intervention page returned no body',
+    );
   }
   return parseInterventionHtml(result.body.toString('utf-8'));
 }
@@ -37,23 +42,33 @@ export function parseInterventionHtml(html: string): InterventionRecord[] {
     const row = $(tr);
     // These three classes only appear on intervention rows; the per-bank table
     // and the <thead> (no date span) are filtered out.
-    const dateSpan = row.find('.views-field-field-fecha-del-indicador .date-display-single');
+    const dateSpan = row.find(
+      '.views-field-field-fecha-del-indicador .date-display-single',
+    );
     const numCell = row.find('.views-field-field-nro-de-intervencion');
     const rateCell = row.find('.views-field-field-monto-intervencion');
-    if (dateSpan.length === 0 || numCell.length === 0 || rateCell.length === 0) return;
+    if (dateSpan.length === 0 || numCell.length === 0 || rateCell.length === 0)
+      return;
 
     // The date span carries the canonical ISO date in its `content` attribute
     // (e.g. content="2026-05-21T00:00:00-04:00").
     const iso = (dateSpan.attr('content') ?? '').slice(0, 10);
     const interventionNumber = numCell.text().trim();
     const rateText = rateCell.text().trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || !interventionNumber || !rateText) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso) || !interventionNumber || !rateText)
+      return;
 
-    records.push({ date: iso, interventionNumber, rate: parseInterventionRate(rateText) });
+    records.push({
+      date: iso,
+      interventionNumber,
+      rate: parseInterventionRate(rateText),
+    });
   });
 
   if (records.length === 0) {
-    throw new UpstreamFormatError('BCV intervention page: no intervention rows parsed');
+    throw new UpstreamFormatError(
+      'BCV intervention page: no intervention rows parsed',
+    );
   }
   return records;
 }

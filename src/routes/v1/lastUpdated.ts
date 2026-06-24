@@ -12,7 +12,9 @@ const route = createRoute({
   summary: 'Timestamp de la última ingesta exitosa',
   description:
     'Útil para monitoreo. Si este valor no avanza durante >36h, el job diario probablemente está fallando.',
-  ...({ 'x-codeSamples': codeSamplesFor({ path: '/v1/last-updated' }) } as Record<string, unknown>),
+  ...({
+    'x-codeSamples': codeSamplesFor({ path: '/v1/last-updated' }),
+  } as Record<string, unknown>),
   responses: {
     200: {
       description: 'Detalles del último run exitoso',

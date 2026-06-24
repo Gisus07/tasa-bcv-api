@@ -4,10 +4,19 @@ import { DateString } from './common.js';
 /** Latest parallel (Binance P2P) snapshot. */
 export const ParallelLatest = z
   .object({
-    timestamp: z.string().datetime().openapi({ example: '2026-05-23T17:00:00.000Z' }),
+    timestamp: z
+      .string()
+      .datetime()
+      .openapi({ example: '2026-05-23T17:00:00.000Z' }),
     currency_pair: z.string().openapi({ example: 'USDT/VES' }),
-    buy: z.number().positive().openapi({ example: 722.5, description: 'Bs para comprar 1 USDT (mediana top-10)' }),
-    sell: z.number().positive().openapi({ example: 721.1, description: 'Bs al vender 1 USDT (mediana top-10)' }),
+    buy: z.number().positive().openapi({
+      example: 722.5,
+      description: 'Bs para comprar 1 USDT (mediana top-10)',
+    }),
+    sell: z.number().positive().openapi({
+      example: 721.1,
+      description: 'Bs al vender 1 USDT (mediana top-10)',
+    }),
     average: z.number().positive().openapi({ example: 721.8 }),
     source: z.string().openapi({ example: 'binance_p2p' }),
   })

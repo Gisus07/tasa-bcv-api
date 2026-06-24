@@ -34,7 +34,9 @@ const route = createRoute({
   },
 });
 
-export const interventionHistory = new OpenAPIHono({ defaultHook: defaultZodHook });
+export const interventionHistory = new OpenAPIHono({
+  defaultHook: defaultZodHook,
+});
 interventionHistory.openapi(route, async (c) => {
   const { from, to } = c.req.valid('query');
   return c.json(await getInterventionHistoryRange(db(), from, to), 200);

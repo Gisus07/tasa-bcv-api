@@ -59,7 +59,8 @@ export function ipRateLimit(): MiddlewareHandler {
     windowMs: 60_000,
     standardHeaders: 'draft-6',
     limit: (c) => (c.var.apiKey ? baseLimit * FREE_TIER_MULTIPLIER : baseLimit),
-    keyGenerator: (c) => (c.var.apiKey ? `key:${c.var.apiKey.id}` : `ip:${clientIp(c)}`),
+    keyGenerator: (c) =>
+      c.var.apiKey ? `key:${c.var.apiKey.id}` : `ip:${clientIp(c)}`,
     message: {
       error: 'Demasiadas solicitudes. Por favor reduce el ritmo.',
       code: 'RATE_LIMITED',

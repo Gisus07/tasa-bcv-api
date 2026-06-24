@@ -1,0 +1,11 @@
+# pnpm 10 lee los overrides de seguridad desde aquí (ya no desde package.json).
+# Todas estas son transitivas; se fijan a la versión parcheada del advisory.
+overrides:
+  # Critical (runtime): viene de gel → drizzle-orm, pero usamos Postgres (pg),
+  # no Gel, así que el código vulnerable no se ejecuta. Se fija igual.
+  shell-quote: '^1.8.4'
+  # High (dev): transitiva de testcontainers.
+  tmp: '^0.2.6'
+  # Low (dev): solo la 0.28.0 (de drizzle-kit) cae en el rango vulnerable;
+  # se parchea sin tocar las demás versiones de esbuild del árbol.
+  'esbuild@0.28.0': '^0.28.1'

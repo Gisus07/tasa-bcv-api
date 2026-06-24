@@ -7,10 +7,10 @@ export const InterventionLatest = z
     date: DateString.openapi({ example: '2026-05-21' }),
     intervention_number: z.string().openapi({ example: '011-26' }),
     currency_pair: z.string().openapi({ example: 'EUR/VES' }),
-    rate: z
-      .number()
-      .positive()
-      .openapi({ example: 710.95, description: 'Tipo de cambio de la intervención, Bs. por EUR' }),
+    rate: z.number().positive().openapi({
+      example: 710.95,
+      description: 'Tipo de cambio de la intervención, Bs. por EUR',
+    }),
     source: z.string().openapi({ example: 'bcv' }),
   })
   .openapi('InterventionLatest');
