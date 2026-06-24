@@ -1,0 +1,28 @@
+name: release-please
+
+# En cada push a main (merge de un PR), release-please mantiene un "Release PR"
+# que acumula los cambios, calcula la próxima versión a partir de los commits
+# (Conventional Commits) y actualiza package.json + CHANGELOG.md. Al mergear ESE
+# Release PR, crea el tag vX.Y.Z y la GitHub Release.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          # GITHUB_TOKEN funciona, pero los PR/commits que crea NO disparan otros
+          # workflows (el CI no corre sobre el Release PR). Si quieres que el
+          # Release PR pase el check requerido por la branch protection, crea un
+          # PAT (repo + workflow) y guárdalo como secret RELEASE_PLEASE_TOKEN.
+          # Mientras tanto, como admin (enforce_admins=false) puedes mergearlo igual.
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
