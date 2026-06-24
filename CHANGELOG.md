@@ -8,6 +8,19 @@ y el proyecto sigue [Versionado Semántico](https://semver.org/lang/es/).
 > Las entradas anteriores a `0.4.0` se reconstruyeron a partir del historial de
 > git y de las notas de GitHub Releases.
 
+## [1.1.0](https://github.com/Gisus07/tasa-bcv-api/compare/v1.0.0...v1.1.0) (2026-06-24)
+
+
+### Features
+
+* add code-quality tooling — ESLint, Prettier, git hooks, CHANGELOG ([#30](https://github.com/Gisus07/tasa-bcv-api/issues/30)) ([2a46af8](https://github.com/Gisus07/tasa-bcv-api/commit/2a46af8675b1f1d7e33aab5ab03a1b49f70e2690))
+
+
+### Bug Fixes
+
+* **deps:** patch transitive undici 7.x and vite advisories ([#35](https://github.com/Gisus07/tasa-bcv-api/issues/35)) ([ed621bb](https://github.com/Gisus07/tasa-bcv-api/commit/ed621bb5c5ff196a77ad57a2801becfe8b1d716d))
+* resolve Dependabot security alerts ([#31](https://github.com/Gisus07/tasa-bcv-api/issues/31)) ([f89e3d0](https://github.com/Gisus07/tasa-bcv-api/commit/f89e3d0795e14a54d3c4912831084f2688a9b60b))
+
 ## [Sin publicar]
 
 ### Añadido
