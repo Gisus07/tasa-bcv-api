@@ -24,7 +24,7 @@ Sigue la sección "Desarrollo local" del [README](../README.md). Necesitas Node 
 ## Tests
 
 - Los parsers y la lógica de quirks tienen tests con fixtures reales. Si tocas el parser o agregas una fuente nueva, **agrega un test que valide un valor canónico conocido** (ver `parser.usd.test.ts` para el patrón).
-- Los tests de DB que dependen de Postgres están marcados con `describe.skip` esperando una migración a `testcontainers`. Si vas a tocar la capa de DB y tienes Docker, puedes habilitar testcontainers en tu fork.
+- Los tests de DB usan **Testcontainers** (un Postgres efímero); necesitas Docker para correrlos. Se ejecutan en serie (`fileParallelism: false` en `vitest.config.ts`) porque comparten un único contenedor. Si tocas la capa de DB, agrega o actualiza el test correspondiente.
 
 ## Commit messages
 
