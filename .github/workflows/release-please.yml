@@ -16,7 +16,7 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         with:
           # GITHUB_TOKEN funciona, pero los PR/commits que crea NO disparan otros
           # workflows (el CI no corre sobre el Release PR). Si quieres que el
