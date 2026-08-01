@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
 # ---------- Stage 1: builder ----------
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 
 # Enable corepack so we can run the project's pinned pnpm version.
@@ -19,7 +19,7 @@ COPY src ./src
 RUN pnpm run build
 
 # ---------- Stage 2: runtime ----------
-FROM node:22-alpine AS runtime
+FROM node:25-alpine AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production \
