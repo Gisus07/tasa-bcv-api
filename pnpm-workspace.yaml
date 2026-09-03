@@ -3,16 +3,18 @@
 overrides:
   # Critical (runtime): viene de gel → drizzle-orm, pero usamos Postgres (pg),
   # no Gel, así que el código vulnerable no se ejecuta. Se fija igual.
-  shell-quote: '^1.8.4'
+  # Parcheado en >=1.9.0 (GHSA-395f-4hp3-45gv, DoS cuadrático en parse()).
+  shell-quote: '^1.9.0'
   # High (dev): transitiva de testcontainers.
   tmp: '^0.2.6'
   # Low (dev): solo la 0.28.0 (de drizzle-kit) cae en el rango vulnerable;
   # se parchea sin tocar las demás versiones de esbuild del árbol.
   'esbuild@0.28.0': '^0.28.1'
   # High/medium/low (runtime): undici 7.x transitiva (de cheerio y
-  # testcontainers). Selectivo a la rama 7.x → 7.28.0 para NO tocar nuestra
-  # undici directa 8.x.
-  'undici@>=7.0.0 <8.0.0': '^7.28.0'
+  # testcontainers). Selectivo a la rama 7.x → 7.29.0 para NO tocar nuestra
+  # undici directa 8.x. Parcheado en >=7.29.0 (GHSA-4cwx-7wf7-3272,
+  # cross-user info disclosure vía cache directives degeneradas).
+  'undici@>=7.0.0 <8.0.0': '^7.29.0'
   # High/medium (dev): vite (de vitest); el dev server vulnerable nunca corre
   # en CI/prod, pero se sube a la versión parcheada.
   vite: '^6.4.3'
